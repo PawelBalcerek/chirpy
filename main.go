@@ -2,28 +2,44 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"log"
 	"net/http"
+
+	"github.com/PawelBalcerek/chirpy/handlers"
+	"github.com/PawelBalcerek/chirpy/metrics"
 )
 
-func main() {
-	appPrefix, appRoot, serverPort := "/app", ".", 8080
-	mux := http.NewServeMux()
-	mux.Handle(fmt.Sprintf("%s/", appPrefix), http.StripPrefix(appPrefix, http.FileServer(http.Dir(appRoot))))
-	mux.Handle("/healthz", HealthCheckHandler{})
-	s := &http.Server{
-		Addr:    fmt.Sprintf(":%d", serverPort),
-		Handler: mux,
-	}
-	log.Println(fmt.Sprintf("Serving files from path \"%s\" on http://localhost:%d%s", appRoot, serverPort, appPrefix))
-	log.Fatal(s.ListenAndServe())
+type serverConfig struct {
+	appPrefix string
+	appRoot   string
+	port      int
+	metrics   *metrics.Metrics
 }
 
-type HealthCheckHandler struct{}
-
-func (h HealthCheckHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-	io.WriteString(w, http.StatusText(http.StatusOK))
+func main() {
+	sCfg := serverConfig{
+		appPrefix: "/app",
+		appRoot:   ".",
+		port:      8080,
+		metrics:   &metrics.Metrics{},
+	}
+	mux := http.NewServeMux()
+	mux.Handle(
+		fmt.Sprintf("%s/", sCfg.appPrefix),
+		sCfg.metrics.FileserverHitsInc(http.StripPrefix(sCfg.appPrefix, http.FileServer(http.Dir(sCfg.appRoot)))),
+	)
+	mux.Handle("/healthz", handlers.HealthCheckHandler{})
+	mux.Handle("/metrics", &handlers.MetricsHandler{Metrics: sCfg.metrics})
+	mux.Handle("/reset", &handlers.ResetHandler{Metrics: sCfg.metrics})
+	s := &http.Server{
+		Addr:    fmt.Sprintf(":%d", sCfg.port),
+		Handler: mux,
+	}
+	log.Println(fmt.Sprintf(
+		"Serving files from path \"%s\" on http://localhost:%d%s",
+		sCfg.appRoot,
+		sCfg.port,
+		sCfg.appPrefix,
+	))
+	log.Fatal(s.ListenAndServe())
 }
