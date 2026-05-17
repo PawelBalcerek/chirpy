@@ -28,9 +28,9 @@ func main() {
 		fmt.Sprintf("%s/", sCfg.appPrefix),
 		sCfg.metrics.FileserverHitsInc(http.StripPrefix(sCfg.appPrefix, http.FileServer(http.Dir(sCfg.appRoot)))),
 	)
-	mux.Handle("/healthz", handlers.HealthCheckHandler{})
-	mux.Handle("/metrics", &handlers.MetricsHandler{Metrics: sCfg.metrics})
-	mux.Handle("/reset", &handlers.ResetHandler{Metrics: sCfg.metrics})
+	mux.Handle("GET /healthz", handlers.HealthCheckHandler{})
+	mux.Handle("GET /metrics", &handlers.MetricsHandler{Metrics: sCfg.metrics})
+	mux.Handle("POST /reset", &handlers.ResetHandler{Metrics: sCfg.metrics})
 	s := &http.Server{
 		Addr:    fmt.Sprintf(":%d", sCfg.port),
 		Handler: mux,
