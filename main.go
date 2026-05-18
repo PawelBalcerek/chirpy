@@ -10,20 +10,22 @@ import (
 )
 
 type serverConfig struct {
-	appPrefix string
-	appRoot   string
-	apiPrefix string
-	port      int
-	metrics   *metrics.Metrics
+	appPrefix   string
+	appRoot     string
+	apiPrefix   string
+	adminPrefix string
+	port        int
+	metrics     *metrics.Metrics
 }
 
 func main() {
 	sCfg := serverConfig{
-		appPrefix: "/app",
-		appRoot:   ".",
-		apiPrefix: "/api",
-		port:      8080,
-		metrics:   &metrics.Metrics{},
+		appPrefix:   "/app",
+		appRoot:     ".",
+		apiPrefix:   "/api",
+		adminPrefix: "/admin",
+		port:        8080,
+		metrics:     &metrics.Metrics{},
 	}
 	mux := http.NewServeMux()
 	mux.Handle(
@@ -31,8 +33,8 @@ func main() {
 		sCfg.metrics.FileserverHitsInc(http.StripPrefix(sCfg.appPrefix, http.FileServer(http.Dir(sCfg.appRoot)))),
 	)
 	mux.Handle(fmt.Sprintf("GET %s/healthz", sCfg.apiPrefix), handlers.HealthCheckHandler{})
-	mux.Handle(fmt.Sprintf("GET %s/metrics", sCfg.apiPrefix), &handlers.MetricsHandler{Metrics: sCfg.metrics})
-	mux.Handle(fmt.Sprintf("POST %s/reset", sCfg.apiPrefix), &handlers.ResetHandler{Metrics: sCfg.metrics})
+	mux.Handle(fmt.Sprintf("GET %s/metrics", sCfg.adminPrefix), &handlers.MetricsHandler{Metrics: sCfg.metrics})
+	mux.Handle(fmt.Sprintf("POST %s/reset", sCfg.adminPrefix), &handlers.ResetHandler{Metrics: sCfg.metrics})
 	s := &http.Server{
 		Addr:    fmt.Sprintf(":%d", sCfg.port),
 		Handler: mux,
