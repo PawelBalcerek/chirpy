@@ -35,6 +35,7 @@ func main() {
 	mux.Handle(fmt.Sprintf("GET %s/healthz", sCfg.apiPrefix), handlers.HealthCheckHandler{})
 	mux.Handle(fmt.Sprintf("GET %s/metrics", sCfg.adminPrefix), &handlers.MetricsHandler{Metrics: sCfg.metrics})
 	mux.Handle(fmt.Sprintf("POST %s/reset", sCfg.adminPrefix), &handlers.ResetHandler{Metrics: sCfg.metrics})
+	mux.Handle(fmt.Sprintf("POST %s/validate_chirp", sCfg.apiPrefix), &handlers.ValidateChirpHandler{})
 	s := &http.Server{
 		Addr:    fmt.Sprintf(":%d", sCfg.port),
 		Handler: mux,
