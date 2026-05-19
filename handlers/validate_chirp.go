@@ -3,7 +3,14 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 )
+
+var profaneWords = map[string]struct{}{
+	"kerfuffle": {},
+	"sharbert":  {},
+	"fornax":    {},
+}
 
 type ValidateChirpHandler struct{}
 
@@ -25,8 +32,18 @@ func (h ValidateChirpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	}
 
 	type validateChirpResponse struct {
-		Valid bool `json:"valid"`
+		CleanedBody string `json:"cleaned_body"`
 	}
 
-	writeJSON(validateChirpResponse{Valid: true}, w, http.StatusOK)
+	cleanedBodyElements := []string{}
+
+	for _, e := range strings.Split(request.Body, " ") {
+		if _, ok := profaneWords[strings.ToLower(e)]; ok {
+			cleanedBodyElements = append(cleanedBodyElements, "****")
+			continue
+		}
+		cleanedBodyElements = append(cleanedBodyElements, e)
+	}
+
+	writeJSON(validateChirpResponse{CleanedBody: strings.Join(cleanedBodyElements, " ")}, w, http.StatusOK)
 }
