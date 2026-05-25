@@ -1,14 +1,13 @@
 package handlers
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 )
 
 func handleError(err error, errorMsg string, w http.ResponseWriter, statusCode int) {
 	if err != nil {
-		log.Println(fmt.Sprintf("an error occurred: %v", err))
+		log.Printf("an error occurred: %v", err)
 	}
 
 	type errorResponse struct {

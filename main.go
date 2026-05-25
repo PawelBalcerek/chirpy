@@ -1,12 +1,17 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/PawelBalcerek/chirpy/handlers"
+	"github.com/PawelBalcerek/chirpy/internal/database"
 	"github.com/PawelBalcerek/chirpy/metrics"
+	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
 )
 
 type serverConfig struct {
@@ -16,9 +21,21 @@ type serverConfig struct {
 	adminPrefix string
 	port        int
 	metrics     *metrics.Metrics
+	dbQueries   *database.Queries
 }
 
 func main() {
+	godotenv.Load()
+	dbURL := os.Getenv("DB_URL")
+	if dbURL == "" {
+		log.Fatal("DB_URL must be set")
+	}
+
+	db, err := sql.Open("postgres", dbURL)
+	if err != nil {
+		log.Fatalf("failed to open database: %v", err)
+	}
+
 	sCfg := serverConfig{
 		appPrefix:   "/app",
 		appRoot:     ".",
@@ -26,6 +43,7 @@ func main() {
 		adminPrefix: "/admin",
 		port:        8080,
 		metrics:     &metrics.Metrics{},
+		dbQueries:   database.New(db),
 	}
 	mux := http.NewServeMux()
 	mux.Handle(
@@ -40,11 +58,11 @@ func main() {
 		Addr:    fmt.Sprintf(":%d", sCfg.port),
 		Handler: mux,
 	}
-	log.Println(fmt.Sprintf(
+	log.Printf(
 		"Serving files from path \"%s\" on http://localhost:%d%s",
 		sCfg.appRoot,
 		sCfg.port,
 		sCfg.appPrefix,
-	))
+	)
 	log.Fatal(s.ListenAndServe())
 }
