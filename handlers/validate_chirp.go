@@ -37,7 +37,7 @@ func (h ValidateChirpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 
 	cleanedBodyElements := []string{}
 
-	for _, e := range strings.Split(request.Body, " ") {
+	for e := range strings.SplitSeq(request.Body, " ") {
 		if _, ok := profaneWords[strings.ToLower(e)]; ok {
 			cleanedBodyElements = append(cleanedBodyElements, "****")
 			continue
