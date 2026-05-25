@@ -21,20 +21,20 @@ func (h CreateUserHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	request := createUserRequest{}
 	if err := decoder.Decode(&request); err != nil {
-		handleError(err, "Something went wrong", w, http.StatusInternalServerError)
+		handleError(err, "Failed to decode request", w, http.StatusBadRequest)
 		return
 	}
 
 	user, err := h.DbQueries.CreateUser(r.Context(), request.Email)
 	if err != nil {
-		handleError(err, "Something went wrong", w, http.StatusInternalServerError)
+		handleError(err, "Failed to create user", w, http.StatusInternalServerError)
 	}
 
 	type createUserResponse struct {
 		Id        uuid.UUID `json:"id"`
 		CreatedAt time.Time `json:"created_at"`
 		UpdatedAt time.Time `json:"updated_at"`
-		Email     string    `json:"string"`
+		Email     string    `json:"email"`
 	}
 	response := createUserResponse{
 		Id:        user.ID,

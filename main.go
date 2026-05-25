@@ -30,6 +30,10 @@ func main() {
 	if dbURL == "" {
 		log.Fatal("DB_URL must be set")
 	}
+	platform := os.Getenv("PLATFORM")
+	if platform == "" {
+		log.Fatal("PLATFORM must be set")
+	}
 
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
@@ -52,7 +56,10 @@ func main() {
 	)
 	mux.Handle(fmt.Sprintf("GET %s/healthz", sCfg.apiPrefix), handlers.HealthCheckHandler{})
 	mux.Handle(fmt.Sprintf("GET %s/metrics", sCfg.adminPrefix), &handlers.MetricsHandler{Metrics: sCfg.metrics})
-	mux.Handle(fmt.Sprintf("POST %s/reset", sCfg.adminPrefix), &handlers.ResetHandler{Metrics: sCfg.metrics})
+	mux.Handle(
+		fmt.Sprintf("POST %s/reset", sCfg.adminPrefix),
+		&handlers.ResetHandler{Metrics: sCfg.metrics, DbQueries: sCfg.dbQueries, Platform: platform},
+	)
 	mux.Handle(fmt.Sprintf("POST %s/validate_chirp", sCfg.apiPrefix), &handlers.ValidateChirpHandler{})
 	mux.Handle(fmt.Sprintf("POST %s/users", sCfg.apiPrefix), &handlers.CreateUserHandler{DbQueries: sCfg.dbQueries})
 	s := &http.Server{
