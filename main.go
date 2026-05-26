@@ -60,7 +60,7 @@ func main() {
 		fmt.Sprintf("POST %s/reset", sCfg.adminPrefix),
 		&handlers.ResetHandler{Metrics: sCfg.metrics, DbQueries: sCfg.dbQueries, Platform: platform},
 	)
-	mux.Handle(fmt.Sprintf("POST %s/validate_chirp", sCfg.apiPrefix), &handlers.ValidateChirpHandler{})
+	mux.Handle(fmt.Sprintf("POST %s/chirps", sCfg.apiPrefix), &handlers.CreateChirpHandler{DbQueries: sCfg.dbQueries})
 	mux.Handle(fmt.Sprintf("POST %s/users", sCfg.apiPrefix), &handlers.CreateUserHandler{DbQueries: sCfg.dbQueries})
 	s := &http.Server{
 		Addr:    fmt.Sprintf(":%d", sCfg.port),
