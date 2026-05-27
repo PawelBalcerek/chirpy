@@ -16,6 +16,24 @@ var profaneWords = map[string]struct{}{
 	"fornax":    {},
 }
 
+type chirpResponse struct {
+	Id        uuid.UUID `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	Body      string    `json:"body"`
+	UserId    uuid.UUID `json:"user_id"`
+}
+
+func newChirpResponse(chirp database.Chirp) chirpResponse {
+	return chirpResponse{
+		Id:        chirp.ID,
+		CreatedAt: chirp.CreatedAt,
+		UpdatedAt: chirp.UpdatedAt,
+		Body:      chirp.Body,
+		UserId:    chirp.UserID,
+	}
+}
+
 type CreateChirpHandler struct {
 	DbQueries *database.Queries
 }
@@ -53,21 +71,26 @@ func (h CreateChirpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	chirp, err := h.DbQueries.CreateChirp(r.Context(), params)
 	if err != nil {
 		handleError(err, "Failed to create chirp", w, http.StatusInternalServerError)
+		return
 	}
 
-	type createChirpResponse struct {
-		Id        uuid.UUID `json:"id"`
-		CreatedAt time.Time `json:"created_at"`
-		UpdatedAt time.Time `json:"updated_at"`
-		Body      string    `json:"body"`
-		UserId    uuid.UUID `json:"user_id"`
+	writeJSON(newChirpResponse(chirp), w, http.StatusCreated)
+}
+
+type GetChirpsHandler struct {
+	DbQueries *database.Queries
+}
+
+func (h GetChirpsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	chirps, err := h.DbQueries.GetChirps(r.Context())
+	if err != nil {
+		handleError(err, "Failed to get chirps", w, http.StatusInternalServerError)
+		return
 	}
-	response := createChirpResponse{
-		Id:        chirp.ID,
-		CreatedAt: chirp.CreatedAt,
-		UpdatedAt: chirp.UpdatedAt,
-		Body:      chirp.Body,
-		UserId:    chirp.UserID,
+
+	responses := []chirpResponse{}
+	for _, chirp := range chirps {
+		responses = append(responses, newChirpResponse(chirp))
 	}
-	writeJSON(response, w, http.StatusCreated)
+	writeJSON(responses, w, http.StatusOK)
 }
