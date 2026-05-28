@@ -5,9 +5,17 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/PawelBalcerek/chirpy/internal/auth"
 	"github.com/PawelBalcerek/chirpy/internal/database"
 	"github.com/google/uuid"
 )
+
+type UserResponse struct {
+	Id        uuid.UUID `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	Email     string    `json:"email"`
+}
 
 type CreateUserHandler struct {
 	DbQueries *database.Queries
@@ -15,7 +23,8 @@ type CreateUserHandler struct {
 
 func (h CreateUserHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	type createUserRequest struct {
-		Email string `json:"email"`
+		Password string `json:"password"`
+		Email    string `json:"email"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -25,18 +34,23 @@ func (h CreateUserHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.DbQueries.CreateUser(r.Context(), request.Email)
+	hashedPassword, err := auth.HashPassword(request.Password)
 	if err != nil {
-		handleError(err, "Failed to create user", w, http.StatusInternalServerError)
+		handleError(err, "Failed to hash password", w, http.StatusInternalServerError)
+		return
 	}
 
-	type createUserResponse struct {
-		Id        uuid.UUID `json:"id"`
-		CreatedAt time.Time `json:"created_at"`
-		UpdatedAt time.Time `json:"updated_at"`
-		Email     string    `json:"email"`
+	params := database.CreateUserParams{
+		Email:          request.Email,
+		HashedPassword: hashedPassword,
 	}
-	response := createUserResponse{
+	user, err := h.DbQueries.CreateUser(r.Context(), params)
+	if err != nil {
+		handleError(err, "Failed to create user", w, http.StatusInternalServerError)
+		return
+	}
+
+	response := UserResponse{
 		Id:        user.ID,
 		CreatedAt: user.CreatedAt,
 		UpdatedAt: user.UpdatedAt,
