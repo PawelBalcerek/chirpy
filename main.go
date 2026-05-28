@@ -61,6 +61,7 @@ func main() {
 		&handlers.ResetHandler{Metrics: sCfg.metrics, DbQueries: sCfg.dbQueries, Platform: platform},
 	)
 	mux.Handle(fmt.Sprintf("POST %s/chirps", sCfg.apiPrefix), &handlers.CreateChirpHandler{DbQueries: sCfg.dbQueries})
+	mux.Handle(fmt.Sprintf("GET %s/chirps/{id}", sCfg.apiPrefix), &handlers.GetChirpHandler{DbQueries: sCfg.dbQueries})
 	mux.Handle(fmt.Sprintf("GET %s/chirps", sCfg.apiPrefix), &handlers.GetChirpsHandler{DbQueries: sCfg.dbQueries})
 	mux.Handle(fmt.Sprintf("POST %s/users", sCfg.apiPrefix), &handlers.CreateUserHandler{DbQueries: sCfg.dbQueries})
 	s := &http.Server{

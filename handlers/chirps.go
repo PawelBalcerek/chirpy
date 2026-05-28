@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strings"
 	"time"
@@ -75,6 +77,30 @@ func (h CreateChirpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(newChirpResponse(chirp), w, http.StatusCreated)
+}
+
+type GetChirpHandler struct {
+	DbQueries *database.Queries
+}
+
+func (h GetChirpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	id, err := uuid.Parse(r.PathValue("id"))
+	if err != nil {
+		handleError(err, "Invalid chirp id", w, http.StatusBadRequest)
+		return
+	}
+
+	chirp, err := h.DbQueries.GetChirp(r.Context(), id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			writeJSON("Chirp could not be found.", w, http.StatusNotFound)
+			return
+		}
+		handleError(err, "Failed to get chirp", w, http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(newChirpResponse(chirp), w, http.StatusOK)
 }
 
 type GetChirpsHandler struct {
