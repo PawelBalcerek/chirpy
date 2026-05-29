@@ -1,12 +1,14 @@
-package auth
+package auth_test
 
 import (
 	"strings"
 	"testing"
+
+	"github.com/PawelBalcerek/chirpy/internal/auth"
 )
 
 func TestHashPassword_HappyPath(t *testing.T) {
-	hash, err := HashPassword("correct-horse-battery-staple")
+	hash, err := auth.HashPassword("correct-horse-battery-staple")
 	if err != nil {
 		t.Fatalf("expected no error, got: %v", err)
 	}
@@ -16,7 +18,7 @@ func TestHashPassword_HappyPath(t *testing.T) {
 }
 
 func TestHashPassword_EmptyPassword(t *testing.T) {
-	hash, err := HashPassword("")
+	hash, err := auth.HashPassword("")
 	if err != nil {
 		t.Fatalf("expected no error for empty password, got: %v", err)
 	}
@@ -27,7 +29,7 @@ func TestHashPassword_EmptyPassword(t *testing.T) {
 
 func TestHashPassword_LongPassword(t *testing.T) {
 	long := strings.Repeat("a", 1000)
-	hash, err := HashPassword(long)
+	hash, err := auth.HashPassword(long)
 	if err != nil {
 		t.Fatalf("expected no error for a long password, got: %v", err)
 	}
@@ -38,11 +40,11 @@ func TestHashPassword_LongPassword(t *testing.T) {
 
 func TestHashPassword_IsUnique(t *testing.T) {
 	password := "same-password"
-	hash1, err := HashPassword(password)
+	hash1, err := auth.HashPassword(password)
 	if err != nil {
 		t.Fatalf("first hash failed: %v", err)
 	}
-	hash2, err := HashPassword(password)
+	hash2, err := auth.HashPassword(password)
 	if err != nil {
 		t.Fatalf("second hash failed: %v", err)
 	}
@@ -53,12 +55,12 @@ func TestHashPassword_IsUnique(t *testing.T) {
 
 func TestCheckPasswordHash_CorrectPassword(t *testing.T) {
 	password := "super-secret"
-	hash, err := HashPassword(password)
+	hash, err := auth.HashPassword(password)
 	if err != nil {
 		t.Fatalf("hashing failed: %v", err)
 	}
 
-	match, err := CheckPasswordHash(password, hash)
+	match, err := auth.CheckPasswordHash(password, hash)
 	if err != nil {
 		t.Fatalf("expected no error, got: %v", err)
 	}
@@ -68,12 +70,12 @@ func TestCheckPasswordHash_CorrectPassword(t *testing.T) {
 }
 
 func TestCheckPasswordHash_WrongPassword(t *testing.T) {
-	hash, err := HashPassword("correct-password")
+	hash, err := auth.HashPassword("correct-password")
 	if err != nil {
 		t.Fatalf("hashing failed: %v", err)
 	}
 
-	match, err := CheckPasswordHash("wrong-password", hash)
+	match, err := auth.CheckPasswordHash("wrong-password", hash)
 	if err != nil {
 		t.Fatalf("expected no error for a wrong password, got: %v", err)
 	}
@@ -83,12 +85,12 @@ func TestCheckPasswordHash_WrongPassword(t *testing.T) {
 }
 
 func TestCheckPasswordHash_EmptyPassword(t *testing.T) {
-	hash, err := HashPassword("non-empty-password")
+	hash, err := auth.HashPassword("non-empty-password")
 	if err != nil {
 		t.Fatalf("hashing failed: %v", err)
 	}
 
-	match, err := CheckPasswordHash("", hash)
+	match, err := auth.CheckPasswordHash("", hash)
 	if err != nil {
 		t.Fatalf("expected no error, got: %v", err)
 	}
@@ -98,7 +100,7 @@ func TestCheckPasswordHash_EmptyPassword(t *testing.T) {
 }
 
 func TestCheckPasswordHash_InvalidHash(t *testing.T) {
-	match, err := CheckPasswordHash("any-password", "not-a-valid-hash")
+	match, err := auth.CheckPasswordHash("any-password", "not-a-valid-hash")
 	if err == nil {
 		t.Error("expected an error for an invalid hash, got nil")
 	}
@@ -108,7 +110,7 @@ func TestCheckPasswordHash_InvalidHash(t *testing.T) {
 }
 
 func TestCheckPasswordHash_EmptyHash(t *testing.T) {
-	match, err := CheckPasswordHash("any-password", "")
+	match, err := auth.CheckPasswordHash("any-password", "")
 	if err == nil {
 		t.Error("expected an error for an empty hash, got nil")
 	}
