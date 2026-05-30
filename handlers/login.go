@@ -13,8 +13,10 @@ import (
 )
 
 const (
-	UnauthorizedUserMsg   = "Incorrect email or password"
-	defaultExpiresInHours = 1 * time.Hour
+	UnauthorizedUserMsg = "Incorrect email or password"
+
+	jwtExpiresIn          = 1 * time.Hour
+	refreshTokenExpiresIn = 60 * 24 * time.Hour
 )
 
 type LoginHandler struct {
@@ -24,9 +26,8 @@ type LoginHandler struct {
 
 func (h LoginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	type loginRequest struct {
-		Password         string        `json:"password"`
-		Email            string        `json:"email"`
-		ExpiresInSeconds time.Duration `json:"expires_in_seconds,omitempty"`
+		Password string `json:"password"`
+		Email    string `json:"email"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -34,9 +35,6 @@ func (h LoginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err := decoder.Decode(&request); err != nil {
 		handleError(err, "Failed to decode request", w, http.StatusBadRequest)
 		return
-	}
-	if request.ExpiresInSeconds == 0 {
-		request.ExpiresInSeconds = time.Duration(defaultExpiresInHours.Seconds())
 	}
 
 	user, err := h.DbQueries.GetUser(r.Context(), request.Email)
@@ -59,25 +57,36 @@ func (h LoginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jwt, err := auth.MakeJWT(user.ID, h.JWTSecret, request.ExpiresInSeconds*time.Second)
+	jwt, err := auth.MakeJWT(user.ID, h.JWTSecret, jwtExpiresIn)
 	if err != nil {
 		handleError(err, "Failed to make JWT", w, http.StatusInternalServerError)
 		return
 	}
 
+	refreshToken := auth.MakeRefreshToken()
+
+	params := database.CreateRefreshTokenParams{
+		Token:     refreshToken,
+		UserID:    user.ID,
+		ExpiresAt: time.Now().Add(refreshTokenExpiresIn),
+	}
+	h.DbQueries.CreateRefreshToken(r.Context(), params)
+
 	type loginResponse struct {
-		Id        uuid.UUID `json:"id"`
-		CreatedAt time.Time `json:"created_at"`
-		UpdatedAt time.Time `json:"updated_at"`
-		Email     string    `json:"email"`
-		Token     string    `json:"token"`
+		Id           uuid.UUID `json:"id"`
+		CreatedAt    time.Time `json:"created_at"`
+		UpdatedAt    time.Time `json:"updated_at"`
+		Email        string    `json:"email"`
+		Token        string    `json:"token"`
+		RefreshToken string    `json:"refresh_token"`
 	}
 	response := loginResponse{
-		Id:        user.ID,
-		CreatedAt: user.CreatedAt,
-		UpdatedAt: user.UpdatedAt,
-		Email:     user.Email,
-		Token:     jwt,
+		Id:           user.ID,
+		CreatedAt:    user.CreatedAt,
+		UpdatedAt:    user.UpdatedAt,
+		Email:        user.Email,
+		Token:        jwt,
+		RefreshToken: refreshToken,
 	}
 	writeJSON(response, w, http.StatusOK)
 }

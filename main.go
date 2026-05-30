@@ -81,6 +81,11 @@ func main() {
 		fmt.Sprintf("POST %s/login", sCfg.apiPrefix),
 		&handlers.LoginHandler{DbQueries: sCfg.dbQueries, JWTSecret: jwtSecret},
 	)
+	mux.Handle(
+		fmt.Sprintf("POST %s/refresh", sCfg.apiPrefix),
+		&handlers.RefreshHandler{DbQueries: sCfg.dbQueries, JWTSecret: jwtSecret},
+	)
+	mux.Handle(fmt.Sprintf("POST %s/revoke", sCfg.apiPrefix), &handlers.RevokeHandler{DbQueries: sCfg.dbQueries})
 	s := &http.Server{
 		Addr:    fmt.Sprintf(":%d", sCfg.port),
 		Handler: mux,
