@@ -14,10 +14,15 @@ const (
 )
 
 var (
-	ErrInvalidIssuer = errors.New("invalid issuer")
+	ErrMissingTokenSecret = errors.New("missing token secret")
+	ErrInvalidIssuer      = errors.New("invalid issuer")
 )
 
 func MakeJWT(userId uuid.UUID, tokenSecret string, expiresIn time.Duration) (string, error) {
+	if tokenSecret == "" {
+		return "", ErrMissingTokenSecret
+	}
+
 	claims := jwt.RegisteredClaims{
 		Issuer:    issuer,
 		IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -29,6 +34,10 @@ func MakeJWT(userId uuid.UUID, tokenSecret string, expiresIn time.Duration) (str
 }
 
 func ValidateJWT(tokenString, tokenSecret string) (uuid.UUID, error) {
+	if tokenSecret == "" {
+		return uuid.Nil, ErrMissingTokenSecret
+	}
+
 	claims := jwt.RegisteredClaims{}
 	token, err := jwt.ParseWithClaims(tokenString, &claims, func(t *jwt.Token) (any, error) {
 		return []byte(tokenSecret), nil

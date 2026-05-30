@@ -11,17 +11,17 @@ import (
 )
 
 const (
-	tokenSecret = "7b9b0b47-b0da-4ea1-bbf4-accb187ae08a"
-	ExpiresIn   = 30 * time.Second
+	tokenSecret      = "7b9b0b47-b0da-4ea1-bbf4-accb187ae08a"
+	expiresInSeconds = 30 * time.Second
 )
 
-func TestMakeJWT_HappyPath(t *testing.T) {
+func TestMakeJWT_ReturnsToken(t *testing.T) {
 	userId, err := uuid.NewUUID()
 	if err != nil {
 		t.Fatalf("expected no error, got: %v", err)
 	}
 
-	token, err := auth.MakeJWT(userId, tokenSecret, ExpiresIn)
+	token, err := auth.MakeJWT(userId, tokenSecret, expiresInSeconds)
 	if err != nil {
 		t.Fatalf("expected no error, got: %v", err)
 	}
@@ -31,13 +31,25 @@ func TestMakeJWT_HappyPath(t *testing.T) {
 	}
 }
 
-func TestValidateJWT_ValidToken(t *testing.T) {
+func TestMakeJWT_ReturnsMissingTokenSecretError(t *testing.T) {
 	userId, err := uuid.NewUUID()
 	if err != nil {
 		t.Fatalf("expected no error, got: %v", err)
 	}
 
-	token, err := auth.MakeJWT(userId, tokenSecret, ExpiresIn)
+	_, err = auth.MakeJWT(userId, "", expiresInSeconds)
+	if !errors.Is(err, auth.ErrMissingTokenSecret) {
+		t.Fatalf("expected missing token secret error, got: %v", err)
+	}
+}
+
+func TestValidateJWT_ReturnsUserId(t *testing.T) {
+	userId, err := uuid.NewUUID()
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+
+	token, err := auth.MakeJWT(userId, tokenSecret, expiresInSeconds)
 	if err != nil {
 		t.Fatalf("expected no error, got: %v", err)
 	}
@@ -52,7 +64,24 @@ func TestValidateJWT_ValidToken(t *testing.T) {
 	}
 }
 
-func TestValidateJWT_ExpiredToken(t *testing.T) {
+func TestValidateJWT_ReturnsMissingTokenSecretError(t *testing.T) {
+	userId, err := uuid.NewUUID()
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+
+	token, err := auth.MakeJWT(userId, tokenSecret, 0)
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+
+	_, err = auth.ValidateJWT(token, "")
+	if !errors.Is(err, auth.ErrMissingTokenSecret) {
+		t.Fatalf("expected missing token secret error, got: %v", err)
+	}
+}
+
+func TestValidateJWT_ReturnsExpiredTokenError(t *testing.T) {
 	userId, err := uuid.NewUUID()
 	if err != nil {
 		t.Fatalf("expected no error, got: %v", err)
@@ -65,41 +94,41 @@ func TestValidateJWT_ExpiredToken(t *testing.T) {
 
 	_, err = auth.ValidateJWT(token, tokenSecret)
 	if !errors.Is(err, jwt.ErrTokenExpired) {
-		t.Fatalf("expected expired token, got: %v", err)
+		t.Fatalf("expected expired token error, got: %v", err)
 	}
 }
 
-func TestValidateJWT_ValidTokenInvalidTokenSecret(t *testing.T) {
+func TestValidateJWT_ReturnsInvalidSignatureErrorWhenTokenSecretDiffers(t *testing.T) {
 	userId, err := uuid.NewUUID()
 	if err != nil {
 		t.Fatalf("expected no error, got: %v", err)
 	}
 
-	token, err := auth.MakeJWT(userId, tokenSecret, ExpiresIn)
+	token, err := auth.MakeJWT(userId, tokenSecret, expiresInSeconds)
 	if err != nil {
 		t.Fatalf("expected no error, got: %v", err)
 	}
 
-	_, err = auth.ValidateJWT(token, "")
+	_, err = auth.ValidateJWT(token, "differentTokenSecret")
 	if !errors.Is(err, jwt.ErrSignatureInvalid) {
-		t.Fatalf("expected invalid signature, got err: %v", err)
+		t.Fatalf("expected invalid signature error, got err: %v", err)
 	}
 }
 
-func TestValidateJWT_MalformedToken(t *testing.T) {
+func TestValidateJWT_ReturnsMalformedTokenError(t *testing.T) {
 	_, err := auth.ValidateJWT("", tokenSecret)
 	if !errors.Is(err, jwt.ErrTokenMalformed) {
-		t.Fatalf("expected malformed token, got: %v", err)
+		t.Fatalf("expected malformed token error, got: %v", err)
 	}
 }
 
-func TestValidateJWT_TamperedPayload(t *testing.T) {
+func TestValidateJWT_ReturnsInvalidSignatureErrorWhenTamperedPayload(t *testing.T) {
 	userId, err := uuid.NewUUID()
 	if err != nil {
 		t.Fatalf("expected no error, got: %v", err)
 	}
 
-	token, err := auth.MakeJWT(userId, tokenSecret, ExpiresIn)
+	token, err := auth.MakeJWT(userId, tokenSecret, expiresInSeconds)
 	if err != nil {
 		t.Fatalf("expected no error, got: %v", err)
 	}
@@ -107,11 +136,11 @@ func TestValidateJWT_TamperedPayload(t *testing.T) {
 	tamperedToken := token + "junk"
 	_, err = auth.ValidateJWT(tamperedToken, tokenSecret)
 	if !errors.Is(err, jwt.ErrSignatureInvalid) {
-		t.Fatalf("expected invalid signature, got: %v", err)
+		t.Fatalf("expected invalid signature error, got: %v", err)
 	}
 }
 
-func TestValidateJWT_InvalidIssuer(t *testing.T) {
+func TestValidateJWT_ReturnsInvalidIssuerError(t *testing.T) {
 	userId, err := uuid.NewUUID()
 	if err != nil {
 		t.Fatalf("expected no error, got: %v", err)
@@ -120,7 +149,7 @@ func TestValidateJWT_InvalidIssuer(t *testing.T) {
 	claims := jwt.RegisteredClaims{
 		Issuer:    "wrong-issuer",
 		IssuedAt:  jwt.NewNumericDate(time.Now()),
-		ExpiresAt: jwt.NewNumericDate(time.Now().Add(ExpiresIn)),
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(expiresInSeconds)),
 		Subject:   userId.String(),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -131,6 +160,6 @@ func TestValidateJWT_InvalidIssuer(t *testing.T) {
 
 	_, err = auth.ValidateJWT(tokenString, tokenSecret)
 	if !errors.Is(err, auth.ErrInvalidIssuer) {
-		t.Fatalf("expected invalid issuer, got: %v", err)
+		t.Fatalf("expected invalid issuer error, got: %v", err)
 	}
 }

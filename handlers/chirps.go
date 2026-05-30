@@ -8,8 +8,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/PawelBalcerek/chirpy/internal/auth"
 	"github.com/PawelBalcerek/chirpy/internal/database"
 	"github.com/google/uuid"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 var profaneWords = map[string]struct{}{
@@ -38,12 +41,25 @@ func newChirpResponse(chirp database.Chirp) chirpResponse {
 
 type CreateChirpHandler struct {
 	DbQueries *database.Queries
+	JWTSecret string
 }
 
 func (h CreateChirpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	token, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		caser := cases.Title(language.English, cases.NoLower)
+		handleError(err, caser.String(err.Error()), w, http.StatusUnauthorized)
+		return
+	}
+
+	userId, err := auth.ValidateJWT(token, h.JWTSecret)
+	if err != nil {
+		handleError(err, "Invalid token", w, http.StatusUnauthorized)
+		return
+	}
+
 	type createChirpRequest struct {
-		Body   string    `json:"body"`
-		UserId uuid.UUID `json:"user_id"`
+		Body string `json:"body"`
 	}
 	decoder := json.NewDecoder(r.Body)
 	request := createChirpRequest{}
@@ -68,7 +84,7 @@ func (h CreateChirpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	params := database.CreateChirpParams{
 		Body:   request.Body,
-		UserID: request.UserId,
+		UserID: userId,
 	}
 	chirp, err := h.DbQueries.CreateChirp(r.Context(), params)
 	if err != nil {

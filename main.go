@@ -14,6 +14,12 @@ import (
 	_ "github.com/lib/pq"
 )
 
+const (
+	dbURLEnv     = "DB_URL"
+	platformEnv  = "PLATFORM"
+	jwtSecretEnv = "JWT_SECRET"
+)
+
 type serverConfig struct {
 	appPrefix   string
 	appRoot     string
@@ -26,13 +32,17 @@ type serverConfig struct {
 
 func main() {
 	godotenv.Load()
-	dbURL := os.Getenv("DB_URL")
+	dbURL := os.Getenv(dbURLEnv)
 	if dbURL == "" {
-		log.Fatal("DB_URL must be set")
+		log.Fatalf("%s must be set", dbURLEnv)
 	}
-	platform := os.Getenv("PLATFORM")
+	platform := os.Getenv(platformEnv)
 	if platform == "" {
-		log.Fatal("PLATFORM must be set")
+		log.Fatalf("%s must be set", platformEnv)
+	}
+	jwtSecret := os.Getenv(jwtSecretEnv)
+	if jwtSecret == "" {
+		log.Fatalf("%s must be set", jwtSecretEnv)
 	}
 
 	db, err := sql.Open("postgres", dbURL)
@@ -60,11 +70,17 @@ func main() {
 		fmt.Sprintf("POST %s/reset", sCfg.adminPrefix),
 		&handlers.ResetHandler{Metrics: sCfg.metrics, DbQueries: sCfg.dbQueries, Platform: platform},
 	)
-	mux.Handle(fmt.Sprintf("POST %s/chirps", sCfg.apiPrefix), &handlers.CreateChirpHandler{DbQueries: sCfg.dbQueries})
+	mux.Handle(
+		fmt.Sprintf("POST %s/chirps", sCfg.apiPrefix),
+		&handlers.CreateChirpHandler{DbQueries: sCfg.dbQueries, JWTSecret: jwtSecret},
+	)
 	mux.Handle(fmt.Sprintf("GET %s/chirps/{id}", sCfg.apiPrefix), &handlers.GetChirpHandler{DbQueries: sCfg.dbQueries})
 	mux.Handle(fmt.Sprintf("GET %s/chirps", sCfg.apiPrefix), &handlers.GetChirpsHandler{DbQueries: sCfg.dbQueries})
 	mux.Handle(fmt.Sprintf("POST %s/users", sCfg.apiPrefix), &handlers.CreateUserHandler{DbQueries: sCfg.dbQueries})
-	mux.Handle(fmt.Sprintf("POST %s/login", sCfg.apiPrefix), &handlers.LoginHandler{DbQueries: sCfg.dbQueries})
+	mux.Handle(
+		fmt.Sprintf("POST %s/login", sCfg.apiPrefix),
+		&handlers.LoginHandler{DbQueries: sCfg.dbQueries, JWTSecret: jwtSecret},
+	)
 	s := &http.Server{
 		Addr:    fmt.Sprintf(":%d", sCfg.port),
 		Handler: mux,
