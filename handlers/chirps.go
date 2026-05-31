@@ -133,3 +133,50 @@ func (h GetChirpsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(responses, w, http.StatusOK)
 }
+
+type DeleteChirpHandler struct {
+	DbQueries *database.Queries
+	JWTSecret string
+}
+
+func (h DeleteChirpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	token, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		handleBearerTokenError(err, w)
+		return
+	}
+
+	userId, err := auth.ValidateJWT(token, h.JWTSecret)
+	if err != nil {
+		handleError(err, "Invalid token", w, http.StatusUnauthorized)
+		return
+	}
+
+	id, err := uuid.Parse(r.PathValue("id"))
+	if err != nil {
+		handleError(err, "Invalid chirp id", w, http.StatusBadRequest)
+		return
+	}
+
+	chirp, err := h.DbQueries.GetChirp(r.Context(), id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			writeJSON("Chirp could not be found.", w, http.StatusNotFound)
+			return
+		}
+		handleError(err, "Failed to get chirp", w, http.StatusInternalServerError)
+		return
+	}
+
+	if chirp.UserID != userId {
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+
+	if err = h.DbQueries.DeleteChirp(r.Context(), id); err != nil {
+		handleError(err, "Failed to delete chirp", w, http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
