@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
@@ -121,10 +122,15 @@ type GetChirpsHandler struct {
 }
 
 func (h GetChirpsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	authorId, err := uuid.Parse(r.URL.Query().Get("author_id"))
-	if err != nil {
-		handleError(err, "Failed to parse author_id", w, http.StatusBadRequest)
-		return
+	rawAuthorId := r.URL.Query().Get("author_id")
+	authorId := uuid.Nil
+	if rawAuthorId != "" {
+		var err error
+		authorId, err = uuid.Parse(rawAuthorId)
+		if err != nil {
+			handleError(err, "Failed to parse author_id", w, http.StatusBadRequest)
+			return
+		}
 	}
 
 	chirps, err := h.DbQueries.GetChirps(r.Context(), authorId)
@@ -136,6 +142,11 @@ func (h GetChirpsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	responses := []chirpResponse{}
 	for _, chirp := range chirps {
 		responses = append(responses, newChirpResponse(chirp))
+	}
+
+	sortQuery := r.URL.Query().Get("sort")
+	if sortQuery == "desc" {
+		sort.Slice(responses, func(i, j int) bool { return responses[i].CreatedAt.After(responses[j].CreatedAt) })
 	}
 	writeJSON(responses, w, http.StatusOK)
 }

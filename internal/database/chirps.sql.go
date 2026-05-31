@@ -77,7 +77,7 @@ SELECT
     body,
     user_id
 FROM chirps
-WHERE ($1::uuid IS NULL OR user_id = $1)
+WHERE ($1::uuid = '00000000-0000-0000-0000-000000000000'::uuid OR user_id = $1)
 ORDER BY created_at
 `
 
