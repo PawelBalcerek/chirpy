@@ -21,6 +21,7 @@ SELECT
     body,
     user_id
 FROM chirps
+WHERE ($1::uuid IS NULL OR user_id = $1)
 ORDER BY created_at;
 
 -- name: DeleteChirp :exec

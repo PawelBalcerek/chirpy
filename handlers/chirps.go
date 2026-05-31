@@ -121,7 +121,13 @@ type GetChirpsHandler struct {
 }
 
 func (h GetChirpsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	chirps, err := h.DbQueries.GetChirps(r.Context())
+	authorId, err := uuid.Parse(r.URL.Query().Get("author_id"))
+	if err != nil {
+		handleError(err, "Failed to parse author_id", w, http.StatusBadRequest)
+		return
+	}
+
+	chirps, err := h.DbQueries.GetChirps(r.Context(), authorId)
 	if err != nil {
 		handleError(err, "Failed to get chirps", w, http.StatusInternalServerError)
 		return

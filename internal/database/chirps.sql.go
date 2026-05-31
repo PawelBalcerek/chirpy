@@ -77,11 +77,12 @@ SELECT
     body,
     user_id
 FROM chirps
+WHERE ($1::uuid IS NULL OR user_id = $1)
 ORDER BY created_at
 `
 
-func (q *Queries) GetChirps(ctx context.Context) ([]Chirp, error) {
-	rows, err := q.db.QueryContext(ctx, getChirps)
+func (q *Queries) GetChirps(ctx context.Context, dollar_1 uuid.UUID) ([]Chirp, error) {
+	rows, err := q.db.QueryContext(ctx, getChirps, dollar_1)
 	if err != nil {
 		return nil, err
 	}
