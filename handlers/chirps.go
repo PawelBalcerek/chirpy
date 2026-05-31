@@ -45,7 +45,7 @@ type CreateChirpHandler struct {
 func (h CreateChirpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	token, err := auth.GetBearerToken(r.Header)
 	if err != nil {
-		handleBearerTokenError(err, w)
+		handleAuthorizationError(err, w)
 		return
 	}
 
@@ -142,7 +142,7 @@ type DeleteChirpHandler struct {
 func (h DeleteChirpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	token, err := auth.GetBearerToken(r.Header)
 	if err != nil {
-		handleBearerTokenError(err, w)
+		handleAuthorizationError(err, w)
 		return
 	}
 

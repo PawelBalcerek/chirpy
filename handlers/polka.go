@@ -6,15 +6,28 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/PawelBalcerek/chirpy/internal/auth"
 	"github.com/PawelBalcerek/chirpy/internal/database"
 	"github.com/google/uuid"
 )
 
 type PolkaWebhookHandler struct {
 	DbQueries *database.Queries
+	ApiKey    string
 }
 
 func (h PolkaWebhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	apiKey, err := auth.GetApiKey(r.Header)
+	if err != nil {
+		handleAuthorizationError(err, w)
+		return
+	}
+
+	if apiKey != h.ApiKey {
+		writeJSON("Invalid api key", w, http.StatusUnauthorized)
+		return
+	}
+
 	type polkaWebhookRequest struct {
 		Event string `json:"event"`
 		Data  struct {

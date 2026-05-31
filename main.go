@@ -18,6 +18,7 @@ const (
 	dbURLEnv     = "DB_URL"
 	platformEnv  = "PLATFORM"
 	jwtSecretEnv = "JWT_SECRET"
+	polkaKeyEnv  = "POLKA_KEY"
 )
 
 type serverConfig struct {
@@ -43,6 +44,10 @@ func main() {
 	jwtSecret := os.Getenv(jwtSecretEnv)
 	if jwtSecret == "" {
 		log.Fatalf("%s must be set", jwtSecretEnv)
+	}
+	polkaKey := os.Getenv(polkaKeyEnv)
+	if polkaKey == "" {
+		log.Fatalf("%s must be set", polkaKeyEnv)
 	}
 
 	db, err := sql.Open("postgres", dbURL)
@@ -96,7 +101,7 @@ func main() {
 	mux.Handle(fmt.Sprintf("POST %s/revoke", sCfg.apiPrefix), &handlers.RevokeHandler{DbQueries: sCfg.dbQueries})
 	mux.Handle(
 		fmt.Sprintf("POST %s/polka/webhooks", sCfg.apiPrefix),
-		&handlers.PolkaWebhookHandler{DbQueries: sCfg.dbQueries},
+		&handlers.PolkaWebhookHandler{DbQueries: sCfg.dbQueries, ApiKey: polkaKey},
 	)
 	s := &http.Server{
 		Addr:    fmt.Sprintf(":%d", sCfg.port),

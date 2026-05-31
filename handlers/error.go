@@ -8,7 +8,7 @@ import (
 	"golang.org/x/text/language"
 )
 
-func handleBearerTokenError(err error, w http.ResponseWriter) {
+func handleAuthorizationError(err error, w http.ResponseWriter) {
 	caser := cases.Title(language.English, cases.NoLower)
 	handleError(err, caser.String(err.Error()), w, http.StatusUnauthorized)
 }
