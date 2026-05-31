@@ -94,6 +94,10 @@ func main() {
 		&handlers.RefreshHandler{DbQueries: sCfg.dbQueries, JWTSecret: jwtSecret},
 	)
 	mux.Handle(fmt.Sprintf("POST %s/revoke", sCfg.apiPrefix), &handlers.RevokeHandler{DbQueries: sCfg.dbQueries})
+	mux.Handle(
+		fmt.Sprintf("POST %s/polka/webhooks", sCfg.apiPrefix),
+		&handlers.PolkaWebhookHandler{DbQueries: sCfg.dbQueries},
+	)
 	s := &http.Server{
 		Addr:    fmt.Sprintf(":%d", sCfg.port),
 		Handler: mux,
