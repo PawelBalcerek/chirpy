@@ -3,7 +3,15 @@ package handlers
 import (
 	"log"
 	"net/http"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
+
+func handleBearerTokenError(err error, w http.ResponseWriter) {
+	caser := cases.Title(language.English, cases.NoLower)
+	handleError(err, caser.String(err.Error()), w, http.StatusUnauthorized)
+}
 
 func handleError(err error, errorMsg string, w http.ResponseWriter, statusCode int) {
 	if err != nil {
