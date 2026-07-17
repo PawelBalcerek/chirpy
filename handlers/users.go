@@ -156,7 +156,10 @@ func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {
 		UserID:    user.ID,
 		ExpiresAt: time.Now().Add(refreshTokenExpiresIn),
 	}
-	c.DbQueries.CreateRefreshToken(r.Context(), params)
+	if _, err := c.DbQueries.CreateRefreshToken(r.Context(), params); err != nil {
+		handleError(err, "Failed to create refresh token", w, http.StatusInternalServerError)
+		return
+	}
 
 	type loginResponse struct {
 		Id           uuid.UUID `json:"id"`

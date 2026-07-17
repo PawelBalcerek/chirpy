@@ -24,7 +24,7 @@ func NewBody(raw string) (Body, error) {
 	if len(raw) == 0 {
 		return Body{}, ErrBodyEmpty
 	}
-	if len(raw) > 140 {
+	if len([]rune(raw)) > 140 {
 		return Body{}, ErrBodyTooLong
 	}
 
