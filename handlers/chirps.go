@@ -8,7 +8,6 @@ import (
 	"sort"
 	"time"
 
-	"github.com/PawelBalcerek/chirpy/internal/auth"
 	"github.com/PawelBalcerek/chirpy/internal/chirp"
 	"github.com/PawelBalcerek/chirpy/internal/database"
 	"github.com/google/uuid"
@@ -34,19 +33,12 @@ func newChirpResponse(chirp database.Chirp) chirpResponse {
 
 type CreateChirpHandler struct {
 	DbQueries *database.Queries
-	JWTSecret string
 }
 
 func (h CreateChirpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	token, err := auth.GetBearerToken(r.Header)
-	if err != nil {
-		handleAuthorizationError(err, w)
-		return
-	}
-
-	userId, err := auth.ValidateJWT(token, h.JWTSecret)
-	if err != nil {
-		handleError(err, "Invalid token", w, http.StatusUnauthorized)
+	userId, ok := GetUserID(r.Context())
+	if !ok {
+		handleError(nil, "Invalid token", w, http.StatusUnauthorized)
 		return
 	}
 
@@ -143,19 +135,12 @@ func (h GetChirpsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 type DeleteChirpHandler struct {
 	DbQueries *database.Queries
-	JWTSecret string
 }
 
 func (h DeleteChirpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	token, err := auth.GetBearerToken(r.Header)
-	if err != nil {
-		handleAuthorizationError(err, w)
-		return
-	}
-
-	userId, err := auth.ValidateJWT(token, h.JWTSecret)
-	if err != nil {
-		handleError(err, "Invalid token", w, http.StatusUnauthorized)
+	userId, ok := GetUserID(r.Context())
+	if !ok {
+		handleError(nil, "Invalid token", w, http.StatusUnauthorized)
 		return
 	}
 

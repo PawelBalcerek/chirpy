@@ -77,18 +77,18 @@ func main() {
 	)
 	mux.Handle(
 		fmt.Sprintf("POST %s/chirps", sCfg.apiPrefix),
-		&handlers.CreateChirpHandler{DbQueries: sCfg.dbQueries, JWTSecret: jwtSecret},
+		handlers.RequireJWT(jwtSecret)(&handlers.CreateChirpHandler{DbQueries: sCfg.dbQueries}),
 	)
 	mux.Handle(fmt.Sprintf("GET %s/chirps/{id}", sCfg.apiPrefix), &handlers.GetChirpHandler{DbQueries: sCfg.dbQueries})
 	mux.Handle(fmt.Sprintf("GET %s/chirps", sCfg.apiPrefix), &handlers.GetChirpsHandler{DbQueries: sCfg.dbQueries})
 	mux.Handle(
 		fmt.Sprintf("DELETE %s/chirps/{id}", sCfg.apiPrefix),
-		&handlers.DeleteChirpHandler{DbQueries: sCfg.dbQueries, JWTSecret: jwtSecret},
+		handlers.RequireJWT(jwtSecret)(&handlers.DeleteChirpHandler{DbQueries: sCfg.dbQueries}),
 	)
 	mux.Handle(fmt.Sprintf("POST %s/users", sCfg.apiPrefix), &handlers.CreateUserHandler{DbQueries: sCfg.dbQueries})
 	mux.Handle(
 		fmt.Sprintf("PUT %s/users", sCfg.apiPrefix),
-		&handlers.UpdateUserHandler{DbQueries: sCfg.dbQueries, JWTSecret: jwtSecret},
+		handlers.RequireJWT(jwtSecret)(&handlers.UpdateUserHandler{DbQueries: sCfg.dbQueries}),
 	)
 	mux.Handle(
 		fmt.Sprintf("POST %s/login", sCfg.apiPrefix),
@@ -101,7 +101,7 @@ func main() {
 	mux.Handle(fmt.Sprintf("POST %s/revoke", sCfg.apiPrefix), &handlers.RevokeHandler{DbQueries: sCfg.dbQueries})
 	mux.Handle(
 		fmt.Sprintf("POST %s/polka/webhooks", sCfg.apiPrefix),
-		&handlers.PolkaWebhookHandler{DbQueries: sCfg.dbQueries, ApiKey: polkaKey},
+		handlers.RequireApiKey(polkaKey)(&handlers.PolkaWebhookHandler{DbQueries: sCfg.dbQueries}),
 	)
 	s := &http.Server{
 		Addr:    fmt.Sprintf(":%d", sCfg.port),
