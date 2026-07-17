@@ -6,8 +6,8 @@ import (
 )
 
 var (
-	ErrBodyTooLong = errors.New("Chirp is too long")
-	ErrBodyEmpty   = errors.New("Chirp body cannot be empty")
+	ErrBodyTooLong = errors.New("chirp is too long")
+	ErrBodyEmpty   = errors.New("chirp body cannot be empty")
 )
 
 var profaneWords = map[string]struct{}{

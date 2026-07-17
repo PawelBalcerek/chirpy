@@ -54,8 +54,12 @@ func (c *ChirpController) Create(w http.ResponseWriter, r *http.Request) {
 
 	chirpBody, err := chirp.NewBody(request.Body)
 	if err != nil {
-		if errors.Is(err, chirp.ErrBodyTooLong) || errors.Is(err, chirp.ErrBodyEmpty) {
-			handleError(nil, err.Error(), w, http.StatusBadRequest)
+		if errors.Is(err, chirp.ErrBodyTooLong) {
+			handleError(nil, "Chirp is too long", w, http.StatusBadRequest)
+			return
+		}
+		if errors.Is(err, chirp.ErrBodyEmpty) {
+			handleError(nil, "Chirp body cannot be empty", w, http.StatusBadRequest)
 			return
 		}
 		handleError(err, "Something went wrong", w, http.StatusInternalServerError)
