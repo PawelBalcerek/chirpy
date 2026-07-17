@@ -10,11 +10,11 @@ import (
 	"github.com/google/uuid"
 )
 
-type PolkaWebhookHandler struct {
+type PolkaController struct {
 	DbQueries *database.Queries
 }
 
-func (h PolkaWebhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (c *PolkaController) ReceiveWebhook(w http.ResponseWriter, r *http.Request) {
 
 	type polkaWebhookRequest struct {
 		Event string `json:"event"`
@@ -35,7 +35,7 @@ func (h PolkaWebhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err := h.DbQueries.MakeUserChirpyRed(r.Context(), request.Data.UserId); err != nil {
+	if _, err := c.DbQueries.MakeUserChirpyRed(r.Context(), request.Data.UserId); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			writeJSON("User could not be found", w, http.StatusNotFound)
 			return
