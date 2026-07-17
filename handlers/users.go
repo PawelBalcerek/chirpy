@@ -10,8 +10,6 @@ import (
 	"github.com/PawelBalcerek/chirpy/internal/auth"
 	"github.com/PawelBalcerek/chirpy/internal/database"
 	"github.com/google/uuid"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 )
 
 const (
@@ -185,8 +183,7 @@ func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {
 func (c *UserController) Refresh(w http.ResponseWriter, r *http.Request) {
 	token, err := auth.GetBearerToken(r.Header)
 	if err != nil {
-		caser := cases.Title(language.English, cases.NoLower)
-		handleError(err, caser.String(err.Error()), w, http.StatusUnauthorized)
+		handleAuthorizationError(err, w)
 		return
 	}
 

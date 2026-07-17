@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"crypto/subtle"
 	"net/http"
 
 	"github.com/PawelBalcerek/chirpy/internal/auth"
@@ -42,7 +43,7 @@ func RequireApiKey(expectedKey string) func(http.Handler) http.Handler {
 				handleAuthorizationError(err, w)
 				return
 			}
-			if apiKey != expectedKey {
+			if subtle.ConstantTimeCompare([]byte(apiKey), []byte(expectedKey)) != 1 {
 				handleError(nil, "Invalid api key", w, http.StatusUnauthorized)
 				return
 			}
