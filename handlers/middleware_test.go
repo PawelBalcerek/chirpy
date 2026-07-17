@@ -12,10 +12,10 @@ import (
 )
 
 func TestRequireJWT(t *testing.T) {
-	jwtSecret := "my-ultra-secure-test-jwt-secret-key"
+	tokenSecret := auth.TokenSecret("my-ultra-secure-test-jwt-secret-key")
 	userID := uuid.New()
 
-	token, err := auth.MakeJWT(userID, jwtSecret, time.Hour)
+	token, err := auth.MakeJWT(userID, tokenSecret, time.Hour)
 	if err != nil {
 		t.Fatalf("failed to make jwt: %v", err)
 	}
@@ -31,7 +31,7 @@ func TestRequireJWT(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	middleware := handlers.RequireJWT(jwtSecret)(nextHandler)
+	middleware := handlers.RequireJWT(tokenSecret)(nextHandler)
 
 	t.Run("Valid Token", func(t *testing.T) {
 		req := httptest.NewRequest("POST", "/api/chirps", nil)

@@ -43,8 +43,9 @@ func newUserResponse(user database.User) userResponse {
 }
 
 type UserController struct {
-	DbQueries *database.Queries
-	JWTSecret string
+	UserStore   UserStore
+	TokenStore  TokenStore
+	TokenSecret auth.TokenSecret
 }
 
 func (c *UserController) Create(w http.ResponseWriter, r *http.Request) {
@@ -65,7 +66,7 @@ func (c *UserController) Create(w http.ResponseWriter, r *http.Request) {
 		Email:          request.Email,
 		HashedPassword: hashedPassword,
 	}
-	user, err := c.DbQueries.CreateUser(r.Context(), params)
+	user, err := c.UserStore.CreateUser(r.Context(), params)
 	if err != nil {
 		handleError(err, "Failed to create user", w, http.StatusInternalServerError)
 		return
@@ -99,7 +100,7 @@ func (c *UserController) Update(w http.ResponseWriter, r *http.Request) {
 		HashedPassword: hashedPassword,
 		ID:             userId,
 	}
-	user, err := c.DbQueries.UpdateUser(r.Context(), params)
+	user, err := c.UserStore.UpdateUser(r.Context(), params)
 	if err != nil {
 		handleError(err, "Failed to update user", w, http.StatusInternalServerError)
 		return
@@ -109,19 +110,14 @@ func (c *UserController) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {
-	type loginRequest struct {
-		Password string `json:"password"`
-		Email    string `json:"email"`
-	}
-
 	decoder := json.NewDecoder(r.Body)
-	request := loginRequest{}
+	request := userRequest{}
 	if err := decoder.Decode(&request); err != nil {
 		handleError(err, "Failed to decode request", w, http.StatusBadRequest)
 		return
 	}
 
-	user, err := c.DbQueries.GetUser(r.Context(), request.Email)
+	user, err := c.UserStore.GetUser(r.Context(), request.Email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			handleError(nil, UnauthorizedUserMsg, w, http.StatusUnauthorized)
@@ -141,7 +137,7 @@ func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jwt, err := auth.MakeJWT(user.ID, c.JWTSecret, jwtExpiresIn)
+	jwt, err := auth.MakeJWT(user.ID, c.TokenSecret, jwtExpiresIn)
 	if err != nil {
 		handleError(err, "Failed to make JWT", w, http.StatusInternalServerError)
 		return
@@ -154,26 +150,18 @@ func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {
 		UserID:    user.ID,
 		ExpiresAt: time.Now().Add(refreshTokenExpiresIn),
 	}
-	if _, err := c.DbQueries.CreateRefreshToken(r.Context(), params); err != nil {
+	if _, err := c.TokenStore.CreateRefreshToken(r.Context(), params); err != nil {
 		handleError(err, "Failed to create refresh token", w, http.StatusInternalServerError)
 		return
 	}
 
 	type loginResponse struct {
-		Id           uuid.UUID `json:"id"`
-		CreatedAt    time.Time `json:"created_at"`
-		UpdatedAt    time.Time `json:"updated_at"`
-		Email        string    `json:"email"`
-		IsChirpyRed  bool      `json:"is_chirpy_red"`
-		Token        string    `json:"token"`
-		RefreshToken string    `json:"refresh_token"`
+		userResponse
+		Token        string `json:"token"`
+		RefreshToken string `json:"refresh_token"`
 	}
 	response := loginResponse{
-		Id:           user.ID,
-		CreatedAt:    user.CreatedAt,
-		UpdatedAt:    user.UpdatedAt,
-		Email:        user.Email,
-		IsChirpyRed:  user.IsChirpyRed,
+		userResponse: newUserResponse(user),
 		Token:        jwt,
 		RefreshToken: refreshToken,
 	}
@@ -187,7 +175,7 @@ func (c *UserController) Refresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	refreshToken, err := c.DbQueries.GetRefreshToken(r.Context(), token)
+	refreshToken, err := c.TokenStore.GetRefreshToken(r.Context(), token)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			handleError(nil, "Unknown refresh token", w, http.StatusUnauthorized)
@@ -207,7 +195,7 @@ func (c *UserController) Refresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jwt, err := auth.MakeJWT(refreshToken.UserID, c.JWTSecret, jwtExpiresIn)
+	jwt, err := auth.MakeJWT(refreshToken.UserID, c.TokenSecret, jwtExpiresIn)
 	if err != nil {
 		handleError(err, "Failed to make JWT", w, http.StatusInternalServerError)
 		return
@@ -226,7 +214,7 @@ func (c *UserController) Revoke(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := c.DbQueries.RevokeRefreshToken(r.Context(), token); err != nil {
+	if err := c.TokenStore.RevokeRefreshToken(r.Context(), token); err != nil {
 		handleError(err, "Failed to revoke refresh token", w, http.StatusInternalServerError)
 		return
 	}

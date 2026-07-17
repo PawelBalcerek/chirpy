@@ -16,7 +16,7 @@ const (
 	apiKeyContextKey contextKey = "apiKey"
 )
 
-func RequireJWT(jwtSecret string) func(http.Handler) http.Handler {
+func RequireJWT(tokenSecret auth.TokenSecret) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			token, err := auth.GetBearerToken(r.Header)
@@ -24,7 +24,7 @@ func RequireJWT(jwtSecret string) func(http.Handler) http.Handler {
 				handleAuthorizationError(err, w)
 				return
 			}
-			userID, err := auth.ValidateJWT(token, jwtSecret)
+			userID, err := auth.ValidateJWT(token, tokenSecret)
 			if err != nil {
 				handleError(err, "Invalid token", w, http.StatusUnauthorized)
 				return

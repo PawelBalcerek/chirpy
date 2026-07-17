@@ -5,7 +5,6 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/PawelBalcerek/chirpy/internal/database"
 	"github.com/PawelBalcerek/chirpy/metrics"
 )
 
@@ -20,8 +19,8 @@ const metricsPageTemplate = `
 
 type SystemController struct {
 	Metrics   *metrics.Metrics
-	DbQueries *database.Queries
-	Platform  string
+	UserStore UserStore
+	Platform  Platform
 }
 
 func (c *SystemController) HealthCheck(w http.ResponseWriter, r *http.Request) {
@@ -37,13 +36,13 @@ func (c *SystemController) MetricsReport(w http.ResponseWriter, r *http.Request)
 }
 
 func (c *SystemController) Reset(w http.ResponseWriter, r *http.Request) {
-	if c.Platform != "local" {
+	if c.Platform != PlatformLocal {
 		w.WriteHeader(http.StatusForbidden)
 		w.Write([]byte("Reset is only allowed in the local environment."))
 		return
 	}
 
-	if err := c.DbQueries.DeleteUsers(r.Context()); err != nil {
+	if err := c.UserStore.DeleteUsers(r.Context()); err != nil {
 		handleError(err, "Failed to delete users", w, http.StatusInternalServerError)
 		return
 	}
