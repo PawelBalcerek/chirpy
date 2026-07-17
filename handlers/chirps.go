@@ -48,7 +48,7 @@ func (c *ChirpController) Create(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	request := createChirpRequest{}
 	if err := decoder.Decode(&request); err != nil {
-		handleError(err, "Something went wrong", w, http.StatusInternalServerError)
+		handleError(err, "Failed to decode request", w, http.StatusBadRequest)
 		return
 	}
 

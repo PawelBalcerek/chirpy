@@ -103,7 +103,7 @@ func (c *UserController) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	user, err := c.DbQueries.UpdateUser(r.Context(), params)
 	if err != nil {
-		handleError(err, "Failed to create user", w, http.StatusInternalServerError)
+		handleError(err, "Failed to update user", w, http.StatusInternalServerError)
 		return
 	}
 
