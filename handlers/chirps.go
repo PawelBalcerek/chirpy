@@ -85,7 +85,7 @@ func (c *ChirpController) Get(w http.ResponseWriter, r *http.Request) {
 	chirpVal, err := c.DbQueries.GetChirp(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			writeJSON("Chirp could not be found.", w, http.StatusNotFound)
+			handleError(nil, "Chirp could not be found.", w, http.StatusNotFound)
 			return
 		}
 		handleError(err, "Failed to get chirp", w, http.StatusInternalServerError)
@@ -141,7 +141,7 @@ func (c *ChirpController) Delete(w http.ResponseWriter, r *http.Request) {
 	chirpVal, err := c.DbQueries.GetChirp(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			writeJSON("Chirp could not be found.", w, http.StatusNotFound)
+			handleError(nil, "Chirp could not be found.", w, http.StatusNotFound)
 			return
 		}
 		handleError(err, "Failed to get chirp", w, http.StatusInternalServerError)
