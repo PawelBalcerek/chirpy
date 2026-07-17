@@ -60,5 +60,5 @@ Key decisions documented in `docs/adr/`:
 | #   | Bug                                                                            | Status                            |
 | --- | ------------------------------------------------------------------------------ | --------------------------------- |
 | 1   | Profanity filter was dead code — `request.Body` saved instead of `cleanedBody` | **Fixed** in Store seam changeset |
-| 2   | `LoginHandler` silently drops `CreateRefreshToken` error                       | Open — follow-up issue            |
+| 2   | `LoginHandler` silently drops `CreateRefreshToken` error                       | **Fixed** in Store seam changeset |
 | 3   | `ResetHandler` writes body before status code                                  | Open — follow-up issue            |
