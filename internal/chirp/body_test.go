@@ -61,6 +61,11 @@ func TestNewBody_Errors(t *testing.T) {
 			expectedError: chirp.ErrBodyEmpty,
 		},
 		{
+			name:          "whitespace-only body",
+			input:         "   ",
+			expectedError: chirp.ErrBodyEmpty,
+		},
+		{
 			name:          "too long body",
 			input:         strings.Repeat("a", 141),
 			expectedError: chirp.ErrBodyTooLong,

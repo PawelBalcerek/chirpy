@@ -55,7 +55,7 @@ func (c *ChirpController) Create(w http.ResponseWriter, r *http.Request) {
 	chirpBody, err := chirp.NewBody(request.Body)
 	if err != nil {
 		if errors.Is(err, chirp.ErrBodyTooLong) || errors.Is(err, chirp.ErrBodyEmpty) {
-			handleError(err, err.Error(), w, http.StatusBadRequest)
+			handleError(nil, err.Error(), w, http.StatusBadRequest)
 			return
 		}
 		handleError(err, "Something went wrong", w, http.StatusInternalServerError)
