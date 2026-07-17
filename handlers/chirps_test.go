@@ -360,7 +360,7 @@ func TestChirpDelete_Forbidden(t *testing.T) {
 	req := httptest.NewRequest(http.MethodDelete, "/api/chirps/"+chirpID.String(), nil)
 	req.SetPathValue("id", chirpID.String())
 	req = handlers.WithUserIDContext(req, callerID)
-	httptest.NewRecorder()
+	rr := httptest.NewRecorder()
 
 	ctrl.Delete(rr, req)
 

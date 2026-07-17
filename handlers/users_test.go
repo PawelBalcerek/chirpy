@@ -31,7 +31,7 @@ func TestUserCreate_HappyPath(t *testing.T) {
 			}, nil
 		},
 	}
-	ctrl := &handlers.UserController{UserStore: store, TokenStore: &fakeTokenStore{}, JWTSecret: "secret"}
+	ctrl := &handlers.UserController{UserStore: store, TokenStore: &fakeTokenStore{}, TokenSecret: "secret"}
 
 	body := `{"email":"user@example.com","password":"hunter2"}`
 	req := httptest.NewRequest(http.MethodPost, "/api/users", strings.NewReader(body))
@@ -52,7 +52,7 @@ func TestUserCreate_HappyPath(t *testing.T) {
 }
 
 func TestUserCreate_InvalidJSON(t *testing.T) {
-	ctrl := &handlers.UserController{UserStore: &fakeUserStore{}, TokenStore: &fakeTokenStore{}, JWTSecret: "secret"}
+	ctrl := &handlers.UserController{UserStore: &fakeUserStore{}, TokenStore: &fakeTokenStore{}, TokenSecret: "secret"}
 
 	req := httptest.NewRequest(http.MethodPost, "/api/users", strings.NewReader("not-json"))
 	rr := httptest.NewRecorder()
@@ -70,7 +70,7 @@ func TestUserCreate_StoreError(t *testing.T) {
 			return database.User{}, errors.New("db error")
 		},
 	}
-	ctrl := &handlers.UserController{UserStore: store, TokenStore: &fakeTokenStore{}, JWTSecret: "secret"}
+	ctrl := &handlers.UserController{UserStore: store, TokenStore: &fakeTokenStore{}, TokenSecret: "secret"}
 
 	body := `{"email":"user@example.com","password":"hunter2"}`
 	req := httptest.NewRequest(http.MethodPost, "/api/users", strings.NewReader(body))
@@ -97,7 +97,7 @@ func TestUserUpdate_HappyPath(t *testing.T) {
 			}, nil
 		},
 	}
-	ctrl := &handlers.UserController{UserStore: store, TokenStore: &fakeTokenStore{}, JWTSecret: "secret"}
+	ctrl := &handlers.UserController{UserStore: store, TokenStore: &fakeTokenStore{}, TokenSecret: "secret"}
 
 	body := `{"email":"new@example.com","password":"newpass"}`
 	req := httptest.NewRequest(http.MethodPut, "/api/users", strings.NewReader(body))
@@ -117,7 +117,7 @@ func TestUserUpdate_HappyPath(t *testing.T) {
 }
 
 func TestUserUpdate_NoUserIDInContext(t *testing.T) {
-	ctrl := &handlers.UserController{UserStore: &fakeUserStore{}, TokenStore: &fakeTokenStore{}, JWTSecret: "secret"}
+	ctrl := &handlers.UserController{UserStore: &fakeUserStore{}, TokenStore: &fakeTokenStore{}, TokenSecret: "secret"}
 
 	body := `{"email":"new@example.com","password":"newpass"}`
 	req := httptest.NewRequest(http.MethodPut, "/api/users", strings.NewReader(body))
@@ -136,7 +136,7 @@ func TestUserUpdate_StoreError(t *testing.T) {
 			return database.User{}, errors.New("db error")
 		},
 	}
-	ctrl := &handlers.UserController{UserStore: store, TokenStore: &fakeTokenStore{}, JWTSecret: "secret"}
+	ctrl := &handlers.UserController{UserStore: store, TokenStore: &fakeTokenStore{}, TokenSecret: "secret"}
 
 	body := `{"email":"new@example.com","password":"newpass"}`
 	req := httptest.NewRequest(http.MethodPut, "/api/users", strings.NewReader(body))
@@ -172,7 +172,7 @@ func TestUserLogin_HappyPath(t *testing.T) {
 			return database.RefreshToken{}, nil
 		},
 	}
-	ctrl := &handlers.UserController{UserStore: userStore, TokenStore: tokenStore, JWTSecret: "secret"}
+	ctrl := &handlers.UserController{UserStore: userStore, TokenStore: tokenStore, TokenSecret: "secret"}
 
 	body := `{"email":"user@example.com","password":"correct-horse-battery-staple"}`
 	req := httptest.NewRequest(http.MethodPost, "/api/login", strings.NewReader(body))
@@ -202,7 +202,7 @@ func TestUserLogin_WrongPassword(t *testing.T) {
 			return database.User{HashedPassword: hashed}, nil
 		},
 	}
-	ctrl := &handlers.UserController{UserStore: userStore, TokenStore: &fakeTokenStore{}, JWTSecret: "secret"}
+	ctrl := &handlers.UserController{UserStore: userStore, TokenStore: &fakeTokenStore{}, TokenSecret: "secret"}
 
 	body := `{"email":"user@example.com","password":"wrong-password"}`
 	req := httptest.NewRequest(http.MethodPost, "/api/login", strings.NewReader(body))
@@ -221,7 +221,7 @@ func TestUserLogin_UserNotFound(t *testing.T) {
 			return database.User{}, sql.ErrNoRows
 		},
 	}
-	ctrl := &handlers.UserController{UserStore: userStore, TokenStore: &fakeTokenStore{}, JWTSecret: "secret"}
+	ctrl := &handlers.UserController{UserStore: userStore, TokenStore: &fakeTokenStore{}, TokenSecret: "secret"}
 
 	body := `{"email":"ghost@example.com","password":"anything"}`
 	req := httptest.NewRequest(http.MethodPost, "/api/login", strings.NewReader(body))
@@ -248,7 +248,7 @@ func TestUserLogin_CreateRefreshTokenError(t *testing.T) {
 			return database.RefreshToken{}, errors.New("db error")
 		},
 	}
-	ctrl := &handlers.UserController{UserStore: userStore, TokenStore: tokenStore, JWTSecret: "secret"}
+	ctrl := &handlers.UserController{UserStore: userStore, TokenStore: tokenStore, TokenSecret: "secret"}
 
 	body := `{"email":"user@example.com","password":"mypassword"}`
 	req := httptest.NewRequest(http.MethodPost, "/api/login", strings.NewReader(body))
@@ -275,7 +275,7 @@ func TestUserRefresh_HappyPath(t *testing.T) {
 			}, nil
 		},
 	}
-	ctrl := &handlers.UserController{UserStore: &fakeUserStore{}, TokenStore: tokenStore, JWTSecret: "secret"}
+	ctrl := &handlers.UserController{UserStore: &fakeUserStore{}, TokenStore: tokenStore, TokenSecret: "secret"}
 
 	req := httptest.NewRequest(http.MethodPost, "/api/refresh", nil)
 	req.Header.Set("Authorization", "Bearer "+rawToken)
@@ -302,7 +302,7 @@ func TestUserRefresh_RevokedToken(t *testing.T) {
 			}, nil
 		},
 	}
-	ctrl := &handlers.UserController{UserStore: &fakeUserStore{}, TokenStore: tokenStore, JWTSecret: "secret"}
+	ctrl := &handlers.UserController{UserStore: &fakeUserStore{}, TokenStore: tokenStore, TokenSecret: "secret"}
 
 	req := httptest.NewRequest(http.MethodPost, "/api/refresh", nil)
 	req.Header.Set("Authorization", "Bearer some-token")
@@ -324,7 +324,7 @@ func TestUserRefresh_ExpiredToken(t *testing.T) {
 			}, nil
 		},
 	}
-	ctrl := &handlers.UserController{UserStore: &fakeUserStore{}, TokenStore: tokenStore, JWTSecret: "secret"}
+	ctrl := &handlers.UserController{UserStore: &fakeUserStore{}, TokenStore: tokenStore, TokenSecret: "secret"}
 
 	req := httptest.NewRequest(http.MethodPost, "/api/refresh", nil)
 	req.Header.Set("Authorization", "Bearer some-token")
@@ -343,7 +343,7 @@ func TestUserRefresh_UnknownToken(t *testing.T) {
 			return database.RefreshToken{}, sql.ErrNoRows
 		},
 	}
-	ctrl := &handlers.UserController{UserStore: &fakeUserStore{}, TokenStore: tokenStore, JWTSecret: "secret"}
+	ctrl := &handlers.UserController{UserStore: &fakeUserStore{}, TokenStore: tokenStore, TokenSecret: "secret"}
 
 	req := httptest.NewRequest(http.MethodPost, "/api/refresh", nil)
 	req.Header.Set("Authorization", "Bearer unknown-token")
@@ -357,7 +357,7 @@ func TestUserRefresh_UnknownToken(t *testing.T) {
 }
 
 func TestUserRefresh_MissingHeader(t *testing.T) {
-	ctrl := &handlers.UserController{UserStore: &fakeUserStore{}, TokenStore: &fakeTokenStore{}, JWTSecret: "secret"}
+	ctrl := &handlers.UserController{UserStore: &fakeUserStore{}, TokenStore: &fakeTokenStore{}, TokenSecret: "secret"}
 
 	req := httptest.NewRequest(http.MethodPost, "/api/refresh", nil)
 	rr := httptest.NewRecorder()
@@ -375,7 +375,7 @@ func TestUserRevoke_HappyPath(t *testing.T) {
 			return nil
 		},
 	}
-	ctrl := &handlers.UserController{UserStore: &fakeUserStore{}, TokenStore: tokenStore, JWTSecret: "secret"}
+	ctrl := &handlers.UserController{UserStore: &fakeUserStore{}, TokenStore: tokenStore, TokenSecret: "secret"}
 
 	req := httptest.NewRequest(http.MethodPost, "/api/revoke", nil)
 	req.Header.Set("Authorization", "Bearer some-token")
@@ -389,7 +389,7 @@ func TestUserRevoke_HappyPath(t *testing.T) {
 }
 
 func TestUserRevoke_MissingHeader(t *testing.T) {
-	ctrl := &handlers.UserController{UserStore: &fakeUserStore{}, TokenStore: &fakeTokenStore{}, JWTSecret: "secret"}
+	ctrl := &handlers.UserController{UserStore: &fakeUserStore{}, TokenStore: &fakeTokenStore{}, TokenSecret: "secret"}
 
 	req := httptest.NewRequest(http.MethodPost, "/api/revoke", nil)
 	rr := httptest.NewRecorder()
@@ -407,7 +407,7 @@ func TestUserRevoke_StoreError(t *testing.T) {
 			return errors.New("db error")
 		},
 	}
-	ctrl := &handlers.UserController{UserStore: &fakeUserStore{}, TokenStore: tokenStore, JWTSecret: "secret"}
+	ctrl := &handlers.UserController{UserStore: &fakeUserStore{}, TokenStore: tokenStore, TokenSecret: "secret"}
 
 	req := httptest.NewRequest(http.MethodPost, "/api/revoke", nil)
 	req.Header.Set("Authorization", "Bearer some-token")

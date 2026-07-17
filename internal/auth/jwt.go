@@ -18,7 +18,9 @@ var (
 	ErrInvalidIssuer      = errors.New("invalid issuer")
 )
 
-func MakeJWT(userId uuid.UUID, tokenSecret string, expiresIn time.Duration) (string, error) {
+type TokenSecret string
+
+func MakeJWT(userId uuid.UUID, tokenSecret TokenSecret, expiresIn time.Duration) (string, error) {
 	if tokenSecret == "" {
 		return "", ErrMissingTokenSecret
 	}
@@ -33,7 +35,7 @@ func MakeJWT(userId uuid.UUID, tokenSecret string, expiresIn time.Duration) (str
 	return token.SignedString([]byte(tokenSecret))
 }
 
-func ValidateJWT(tokenString, tokenSecret string) (uuid.UUID, error) {
+func ValidateJWT(tokenString string, tokenSecret TokenSecret) (uuid.UUID, error) {
 	if tokenSecret == "" {
 		return uuid.Nil, ErrMissingTokenSecret
 	}

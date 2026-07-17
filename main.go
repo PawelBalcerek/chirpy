@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/PawelBalcerek/chirpy/handlers"
+	"github.com/PawelBalcerek/chirpy/internal/auth"
 	"github.com/PawelBalcerek/chirpy/internal/database"
 	"github.com/PawelBalcerek/chirpy/metrics"
 	"github.com/joho/godotenv"
@@ -17,7 +18,7 @@ import (
 const (
 	dbURLEnv     = "DB_URL"
 	platformEnv  = "PLATFORM"
-	jwtSecretEnv = "JWT_SECRET"
+	tokenSecretEnv = "JWT_SECRET"
 	polkaKeyEnv  = "POLKA_KEY"
 )
 
@@ -41,9 +42,9 @@ func main() {
 	if platform == "" {
 		log.Fatalf("%s must be set", platformEnv)
 	}
-	jwtSecret := os.Getenv(jwtSecretEnv)
-	if jwtSecret == "" {
-		log.Fatalf("%s must be set", jwtSecretEnv)
+	tokenSecret := os.Getenv(tokenSecretEnv)
+	if tokenSecret == "" {
+		log.Fatalf("%s must be set", tokenSecretEnv)
 	}
 	polkaKey := os.Getenv(polkaKeyEnv)
 	if polkaKey == "" {
@@ -67,12 +68,12 @@ func main() {
 	mux := http.NewServeMux()
 
 	chirpCtrl := &handlers.ChirpController{ChirpStore: sCfg.dbQueries}
-	userCtrl := &handlers.UserController{UserStore: sCfg.dbQueries, TokenStore: sCfg.dbQueries, JWTSecret: jwtSecret}
+	userCtrl := &handlers.UserController{UserStore: sCfg.dbQueries, TokenStore: sCfg.dbQueries, TokenSecret: auth.TokenSecret(tokenSecret)}
 	polkaCtrl := &handlers.PolkaController{UserStore: sCfg.dbQueries}
 	systemCtrl := &handlers.SystemController{
 		Metrics:   sCfg.metrics,
 		UserStore: sCfg.dbQueries,
-		Platform:  platform,
+		Platform:  handlers.Platform(platform),
 	}
 
 	mux.Handle(
@@ -85,19 +86,19 @@ func main() {
 
 	mux.Handle(
 		fmt.Sprintf("POST %s/chirps", sCfg.apiPrefix),
-		handlers.RequireJWT(jwtSecret)(http.HandlerFunc(chirpCtrl.Create)),
+		handlers.RequireJWT(auth.TokenSecret(tokenSecret))(http.HandlerFunc(chirpCtrl.Create)),
 	)
 	mux.HandleFunc(fmt.Sprintf("GET %s/chirps/{id}", sCfg.apiPrefix), chirpCtrl.Get)
 	mux.HandleFunc(fmt.Sprintf("GET %s/chirps", sCfg.apiPrefix), chirpCtrl.List)
 	mux.Handle(
 		fmt.Sprintf("DELETE %s/chirps/{id}", sCfg.apiPrefix),
-		handlers.RequireJWT(jwtSecret)(http.HandlerFunc(chirpCtrl.Delete)),
+		handlers.RequireJWT(auth.TokenSecret(tokenSecret))(http.HandlerFunc(chirpCtrl.Delete)),
 	)
 
 	mux.HandleFunc(fmt.Sprintf("POST %s/users", sCfg.apiPrefix), userCtrl.Create)
 	mux.Handle(
 		fmt.Sprintf("PUT %s/users", sCfg.apiPrefix),
-		handlers.RequireJWT(jwtSecret)(http.HandlerFunc(userCtrl.Update)),
+		handlers.RequireJWT(auth.TokenSecret(tokenSecret))(http.HandlerFunc(userCtrl.Update)),
 	)
 	mux.HandleFunc(fmt.Sprintf("POST %s/login", sCfg.apiPrefix), userCtrl.Login)
 	mux.HandleFunc(fmt.Sprintf("POST %s/refresh", sCfg.apiPrefix), userCtrl.Refresh)

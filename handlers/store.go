@@ -27,3 +27,11 @@ type TokenStore interface {
 	GetRefreshToken(ctx context.Context, token string) (database.RefreshToken, error)
 	RevokeRefreshToken(ctx context.Context, token string) error
 }
+
+type Platform string
+
+const (
+	PlatformLocal      Platform = "local"
+	PlatformProduction Platform = "production"
+)
+

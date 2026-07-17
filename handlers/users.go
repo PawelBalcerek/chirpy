@@ -45,7 +45,7 @@ func newUserResponse(user database.User) userResponse {
 type UserController struct {
 	UserStore  UserStore
 	TokenStore TokenStore
-	JWTSecret  string
+	TokenSecret auth.TokenSecret
 }
 
 func (c *UserController) Create(w http.ResponseWriter, r *http.Request) {
@@ -110,13 +110,8 @@ func (c *UserController) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {
-	type loginRequest struct {
-		Password string `json:"password"`
-		Email    string `json:"email"`
-	}
-
 	decoder := json.NewDecoder(r.Body)
-	request := loginRequest{}
+	request := userRequest{}
 	if err := decoder.Decode(&request); err != nil {
 		handleError(err, "Failed to decode request", w, http.StatusBadRequest)
 		return
@@ -142,7 +137,7 @@ func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jwt, err := auth.MakeJWT(user.ID, c.JWTSecret, jwtExpiresIn)
+	jwt, err := auth.MakeJWT(user.ID, c.TokenSecret, jwtExpiresIn)
 	if err != nil {
 		handleError(err, "Failed to make JWT", w, http.StatusInternalServerError)
 		return
@@ -161,20 +156,12 @@ func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	type loginResponse struct {
-		Id           uuid.UUID `json:"id"`
-		CreatedAt    time.Time `json:"created_at"`
-		UpdatedAt    time.Time `json:"updated_at"`
-		Email        string    `json:"email"`
-		IsChirpyRed  bool      `json:"is_chirpy_red"`
-		Token        string    `json:"token"`
-		RefreshToken string    `json:"refresh_token"`
+		userResponse
+		Token        string `json:"token"`
+		RefreshToken string `json:"refresh_token"`
 	}
 	response := loginResponse{
-		Id:           user.ID,
-		CreatedAt:    user.CreatedAt,
-		UpdatedAt:    user.UpdatedAt,
-		Email:        user.Email,
-		IsChirpyRed:  user.IsChirpyRed,
+		userResponse: newUserResponse(user),
 		Token:        jwt,
 		RefreshToken: refreshToken,
 	}
@@ -208,7 +195,7 @@ func (c *UserController) Refresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jwt, err := auth.MakeJWT(refreshToken.UserID, c.JWTSecret, jwtExpiresIn)
+	jwt, err := auth.MakeJWT(refreshToken.UserID, c.TokenSecret, jwtExpiresIn)
 	if err != nil {
 		handleError(err, "Failed to make JWT", w, http.StatusInternalServerError)
 		return
