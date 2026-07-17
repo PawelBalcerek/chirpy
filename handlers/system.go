@@ -50,5 +50,5 @@ func (c *SystemController) Reset(w http.ResponseWriter, r *http.Request) {
 
 	c.Metrics.FileserverHitsReset()
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Reset succeed."))
+	w.Write([]byte("Reset succeeded."))
 }

@@ -43,7 +43,7 @@ func RequireApiKey(expectedKey string) func(http.Handler) http.Handler {
 				return
 			}
 			if apiKey != expectedKey {
-				writeJSON("Invalid api key", w, http.StatusUnauthorized)
+				handleError(nil, "Invalid api key", w, http.StatusUnauthorized)
 				return
 			}
 			ctx := context.WithValue(r.Context(), apiKeyContextKey, apiKey)

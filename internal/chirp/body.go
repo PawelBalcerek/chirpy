@@ -6,8 +6,8 @@ import (
 )
 
 var (
-	ErrBodyTooLong = errors.New("chirp is too long")
-	ErrBodyEmpty   = errors.New("chirp body cannot be empty")
+	ErrBodyTooLong = errors.New("Chirp is too long")
+	ErrBodyEmpty   = errors.New("Chirp body cannot be empty")
 )
 
 var profaneWords = map[string]struct{}{
@@ -21,7 +21,7 @@ type Body struct {
 }
 
 func NewBody(raw string) (Body, error) {
-	if len(raw) == 0 {
+	if strings.TrimSpace(raw) == "" {
 		return Body{}, ErrBodyEmpty
 	}
 	if len([]rune(raw)) > 140 {

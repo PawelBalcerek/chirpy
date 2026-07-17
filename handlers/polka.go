@@ -37,7 +37,7 @@ func (c *PolkaController) ReceiveWebhook(w http.ResponseWriter, r *http.Request)
 
 	if _, err := c.DbQueries.MakeUserChirpyRed(r.Context(), request.Data.UserId); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			writeJSON("User could not be found", w, http.StatusNotFound)
+			handleError(nil, "User could not be found", w, http.StatusNotFound)
 			return
 		}
 		handleError(err, "Failed to make user chirpy red", w, http.StatusInternalServerError)
