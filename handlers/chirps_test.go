@@ -3,6 +3,7 @@ package handlers
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -36,7 +37,7 @@ func (f *fakeChirpStore) GetChirp(_ context.Context, id uuid.UUID) (database.Chi
 			return c, nil
 		}
 	}
-	return database.Chirp{}, nil
+	return database.Chirp{}, sql.ErrNoRows
 }
 
 func (f *fakeChirpStore) GetChirps(_ context.Context, _ uuid.UUID) ([]database.Chirp, error) {
