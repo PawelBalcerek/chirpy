@@ -34,4 +34,3 @@ const (
 	PlatformLocal      Platform = "local"
 	PlatformProduction Platform = "production"
 )
-

@@ -18,9 +18,9 @@ const metricsPageTemplate = `
 `
 
 type SystemController struct {
-	Metrics    *metrics.Metrics
-	UserStore  UserStore
-	Platform   Platform
+	Metrics   *metrics.Metrics
+	UserStore UserStore
+	Platform  Platform
 }
 
 func (c *SystemController) HealthCheck(w http.ResponseWriter, r *http.Request) {

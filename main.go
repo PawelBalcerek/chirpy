@@ -16,10 +16,10 @@ import (
 )
 
 const (
-	dbURLEnv     = "DB_URL"
-	platformEnv  = "PLATFORM"
+	dbURLEnv       = "DB_URL"
+	platformEnv    = "PLATFORM"
 	tokenSecretEnv = "JWT_SECRET"
-	polkaKeyEnv  = "POLKA_KEY"
+	polkaKeyEnv    = "POLKA_KEY"
 )
 
 type serverConfig struct {

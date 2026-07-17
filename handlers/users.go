@@ -43,8 +43,8 @@ func newUserResponse(user database.User) userResponse {
 }
 
 type UserController struct {
-	UserStore  UserStore
-	TokenStore TokenStore
+	UserStore   UserStore
+	TokenStore  TokenStore
 	TokenSecret auth.TokenSecret
 }
 
