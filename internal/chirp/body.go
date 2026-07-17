@@ -24,8 +24,12 @@ func NewBody(raw string) (Body, error) {
 	if strings.TrimSpace(raw) == "" {
 		return Body{}, ErrBodyEmpty
 	}
-	if len([]rune(raw)) > 140 {
-		return Body{}, ErrBodyTooLong
+	count := 0
+	for range raw {
+		count++
+		if count > 140 {
+			return Body{}, ErrBodyTooLong
+		}
 	}
 
 	words := strings.Split(raw, " ")
