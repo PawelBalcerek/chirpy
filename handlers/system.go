@@ -31,7 +31,7 @@ func (c *SystemController) HealthCheck(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *SystemController) MetricsReport(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html")
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	io.WriteString(w, fmt.Sprintf(metricsPageTemplate, c.Metrics.FileserverHits()))
 }
