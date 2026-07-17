@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Architecture review — Chirpy</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({ startOnLoad: true, theme: "neutral", securityLevel: "loose" });
+    </script>
+    <style>
+      .seam { stroke-dasharray: 4 4; }
+      .leak { stroke: #dc2626; }
+      .deep { background: linear-gradient(135deg, #0f172a, #1e293b); }
+    </style>
+  </head>
+  <body class="bg-stone-50 text-slate-900 font-sans antialiased">
+    <main class="max-w-5xl mx-auto px-6 py-12 space-y-12">
+      
+      <!-- Header -->
+      <header class="border-b border-slate-200 pb-8">
+        <div class="flex items-center justify-between">
+          <div>
+            <h1 class="text-3xl font-bold tracking-tight text-slate-900 font-serif">Architecture Review — Chirpy</h1>
+            <p class="text-sm text-slate-500 mt-1">July 17, 2026</p>
+          </div>
+          
+          <!-- Legend -->
+          <div class="flex items-center space-x-6 text-xs uppercase tracking-wider text-slate-600 bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
+            <div class="flex items-center space-x-2">
+              <span class="inline-block w-4 h-4 bg-slate-100 border border-slate-400 rounded"></span>
+              <span>Module</span>
+            </div>
+            <div class="flex items-center space-x-2">
+              <span class="inline-block w-4 h-0 border-t border-dashed border-slate-600"></span>
+              <span>Seam</span>
+            </div>
+            <div class="flex items-center space-x-2">
+              <span class="inline-block w-4 h-4 bg-slate-900 text-white rounded font-bold text-[8px] flex items-center justify-center">DEEP</span>
+              <span>Deep Module</span>
+            </div>
+            <div class="flex items-center space-x-2">
+              <span class="text-red-600 font-bold">➔</span>
+              <span>Leakage</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Top Recommendation -->
+      <section id="top-recommendation" class="bg-indigo-50 border border-indigo-200 rounded-xl p-6 shadow-sm">
+        <h2 class="text-lg font-bold text-indigo-900 font-serif uppercase tracking-wider">Top Recommendation</h2>
+        <div class="mt-4">
+          <h3 class="text-xl font-bold text-indigo-950">
+            <a href="#candidate-auth" class="hover:underline">1. Establish Authenticated Session Context Seam (Middleware)</a>
+          </h3>
+          <p class="mt-2 text-indigo-900 text-sm leading-relaxed">
+            Consolidating token retrieval and validation behind a single HTTP middleware seam creates a high-leverage context adapter, eliminating duplicate security parsing from individual route handlers.
+          </p>
+        </div>
+      </section>
+
+      <!-- Candidates -->
+      <section id="candidates" class="space-y-12">
+        <h2 class="text-2xl font-bold text-slate-800 font-serif border-b pb-2">Refactoring Candidates</h2>
+
+        <!-- Candidate 1 -->
+        <article id="candidate-auth" class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-6">
+          <div class="flex items-start justify-between">
+            <div>
+              <span class="text-xs font-semibold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full mr-2">Strong</span>
+              <span class="text-xs font-semibold text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-full">in-process</span>
+              <h3 class="text-2xl font-bold mt-2 text-slate-900 font-serif">Establish Authenticated Session Context Seam (Middleware)</h3>
+            </div>
+          </div>
+
+          <div class="text-sm text-slate-500 font-mono space-y-1">
+            <div>handlers/chirps.go</div>
+            <div>handlers/users.go</div>
+            <div>handlers/refresh.go</div>
+            <div>handlers/revoke.go</div>
+            <div>handlers/polka.go</div>
+            <div>internal/auth/jwt.go</div>
+            <div>internal/auth/bearer.go</div>
+            <div>internal/auth/apikey.go</div>
+            <div>main.go</div>
+          </div>
+
+          <!-- Before/After Diagram -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Before -->
+            <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 flex flex-col justify-between">
+              <span class="text-xs font-bold text-slate-500 uppercase tracking-wide block mb-3">Before: Scattered Auth Parsing</span>
+              <div class="h-[280px]">
+                <pre class="mermaid bg-slate-50">
+                  flowchart TD
+                    Client[Client HTTP Request] --> CreateChirpHandler
+                    Client --> UpdateUserHandler
+                    CreateChirpHandler -->|GetBearerToken| Bearer[auth.GetBearerToken]
+                    UpdateUserHandler -->|GetBearerToken| Bearer
+                    CreateChirpHandler -->|ValidateJWT| JWT[auth.ValidateJWT]
+                    UpdateUserHandler -->|ValidateJWT| JWT
+                    classDef leak stroke:#dc2626,stroke-width:2px;
+                    class Bearer,JWT leak
+                </pre>
+              </div>
+            </div>
+
+            <!-- After -->
+            <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 flex flex-col justify-between">
+              <span class="text-xs font-bold text-slate-500 uppercase tracking-wide block mb-3">After: Clean Middleware Seam</span>
+              <div class="h-[280px]">
+                <pre class="mermaid">
+                  flowchart TD
+                    Client[Client HTTP Request] --> AuthMiddleware["Deep Auth Middleware Seam"]
+                    subgraph Deep Module
+                      AuthMiddleware -->|Extract & Validate| Context["Request Context (UserID / API Key)"]
+                    end
+                    Context -.-> CreateChirpHandler
+                    Context -.-> UpdateUserHandler
+                    classDef deep fill:#0f172a,stroke:#334155,color:#fff;
+                    class AuthMiddleware,Context deep
+                </pre>
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-4">
+            <div>
+              <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500">Problem</h4>
+              <p class="text-sm text-slate-700 mt-1">Authentication logic is directly coupled inside individual HTTP handler implementations, making authentication a shallow module that lacks locality.</p>
+            </div>
+
+            <div>
+              <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500">Solution</h4>
+              <p class="text-sm text-slate-700 mt-1">Consolidate authentication into a deep middleware module that validates credentials at an early seam, injecting the verified identity directly into the request context.</p>
+            </div>
+
+            <div>
+              <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500">Wins</h4>
+              <ul class="list-disc list-inside text-sm text-slate-700 space-y-1 mt-1">
+                <li><strong class="text-indigo-900">locality:</strong> credentials verified in one place</li>
+                <li><strong class="text-indigo-900">interface shrinks:</strong> handlers drop auth fields</li>
+                <li><strong class="text-indigo-900">leverage:</strong> single middleware handles all endpoints</li>
+                <li><strong class="text-indigo-900">locality:</strong> error handling format is uniform</li>
+                <li><strong class="text-indigo-900">leverage:</strong> handler tests mock context directly</li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        <!-- Candidate 2 -->
+        <article id="candidate-chirp" class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-6">
+          <div class="flex items-start justify-between">
+            <div>
+              <span class="text-xs font-semibold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full mr-2">Strong</span>
+              <span class="text-xs font-semibold text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-full">in-process</span>
+              <h3 class="text-2xl font-bold mt-2 text-slate-900 font-serif">Deepen Chirp Text Processing Module</h3>
+            </div>
+          </div>
+
+          <div class="text-sm text-slate-500 font-mono space-y-1">
+            <div>handlers/chirps.go</div>
+          </div>
+
+          <!-- Before/After Diagram -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Before -->
+            <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 flex flex-col justify-between">
+              <span class="text-xs font-bold text-slate-500 uppercase tracking-wide block mb-3">Before: Leaked Validation Invariants</span>
+              <div class="flex flex-col justify-center items-center h-[280px] space-y-4">
+                <div class="w-64 border border-slate-300 bg-white rounded p-3 text-xs shadow-sm">
+                  <div class="font-bold text-slate-800 mb-1">CreateChirpHandler (HTTP)</div>
+                  <div class="text-red-600 font-mono text-[10px] space-y-1">
+                    <div>- len(body) > 140 checks</div>
+                    <div>- profanity word replacement loop</div>
+                    <div>- database insert parameter assembly</div>
+                  </div>
+                </div>
+                <div class="text-slate-400">⬇️</div>
+                <div class="w-64 border border-slate-300 bg-white rounded p-2 text-xs shadow-sm text-center font-mono">
+                  database.CreateChirp
+                </div>
+              </div>
+            </div>
+
+            <!-- After -->
+            <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 flex flex-col justify-between">
+              <span class="text-xs font-bold text-slate-500 uppercase tracking-wide block mb-3">After: Encapsulated Chirp Body Module</span>
+              <div class="flex flex-col justify-center items-center h-[280px] space-y-4">
+                <div class="w-64 border border-slate-300 bg-white rounded p-3 text-xs shadow-sm">
+                  <div class="font-bold text-slate-800 mb-1">CreateChirpHandler (HTTP)</div>
+                  <div class="text-slate-500 font-mono text-[10px]">
+                    <div>- calls chirp.ParseBody(req.Body)</div>
+                  </div>
+                </div>
+                <div class="text-slate-400">⬇️</div>
+                <div class="w-64 deep border border-slate-700 rounded p-3 text-xs shadow-sm text-white">
+                  <div class="font-bold mb-1">Chirp Body Module [DEEP]</div>
+                  <div class="text-slate-300 font-mono text-[10px]">
+                    <div>- validates length limit (140)</div>
+                    <div>- filters and replaces profanities</div>
+                  </div>
+                </div>
+                <div class="text-slate-400">⬇️</div>
+                <div class="w-64 border border-slate-300 bg-white rounded p-2 text-xs shadow-sm text-center font-mono">
+                  database.CreateChirp
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-4">
+            <div>
+              <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500">Problem</h4>
+              <p class="text-sm text-slate-700 mt-1">Length validation and profane word filtering are implemented directly inside the HTTP handler using an incomplete loop that leaves profanities unfiltered, creating a shallow interface with leaked invariants.</p>
+            </div>
+
+            <div>
+              <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500">Solution</h4>
+              <p class="text-sm text-slate-700 mt-1">Encapsulate the text body rules inside a deep Chirp text module that parses, validates, and cleans the text on construction.</p>
+            </div>
+
+            <div>
+              <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500">Wins</h4>
+              <ul class="list-disc list-inside text-sm text-slate-700 space-y-1 mt-1">
+                <li><strong class="text-indigo-900">locality:</strong> business invariants in one place</li>
+                <li><strong class="text-indigo-900">locality:</strong> fixes the silent profanity bug</li>
+                <li><strong class="text-indigo-900">interface shrinks:</strong> handler body drops text loops</li>
+                <li><strong class="text-indigo-900">locality:</strong> pure unit tests for validation</li>
+                <li><strong class="text-indigo-900">leverage:</strong> validation shared across future handlers</li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        <!-- Candidate 3 -->
+        <article id="candidate-controllers" class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-6">
+          <div class="flex items-start justify-between">
+            <div>
+              <span class="text-xs font-semibold text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-full mr-2">Worth exploring</span>
+              <span class="text-xs font-semibold text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-full">ports & adapters</span>
+              <h3 class="text-2xl font-bold mt-2 text-slate-900 font-serif">Consolidate Database Controller Adapters</h3>
+            </div>
+          </div>
+
+          <div class="text-sm text-slate-500 font-mono space-y-1">
+            <div>handlers/chirps.go</div>
+            <div>handlers/users.go</div>
+            <div>handlers/login.go</div>
+            <div>main.go</div>
+          </div>
+
+          <!-- Before/After Diagram -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Before -->
+            <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 flex flex-col justify-between">
+              <span class="text-xs font-bold text-slate-500 uppercase tracking-wide block mb-3">Before: Scattered Handlers in Main</span>
+              <div class="h-[280px]">
+                <pre class="mermaid">
+                  flowchart TD
+                    main[main.go] --> CreateChirpHandler
+                    main --> GetChirpsHandler
+                    main --> GetChirpHandler
+                    main --> DeleteChirpHandler
+                    CreateChirpHandler --> Queries[database.Queries]
+                    GetChirpsHandler --> Queries
+                    GetChirpHandler --> Queries
+                    DeleteChirpHandler --> Queries
+                </pre>
+              </div>
+            </div>
+
+            <!-- After -->
+            <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 flex flex-col justify-between">
+              <span class="text-xs font-bold text-slate-500 uppercase tracking-wide block mb-3">After: Consolidated Controller Seam</span>
+              <div class="h-[280px]">
+                <pre class="mermaid">
+                  flowchart TD
+                    main[main.go] --> ChirpController["ChirpController (Deep Seam)"]
+                    subgraph ChirpController
+                      GetChirps
+                      GetChirp
+                      CreateChirp
+                      DeleteChirp
+                    end
+                    ChirpController --> Queries[database.Queries]
+                    classDef deep fill:#0f172a,stroke:#334155,color:#fff;
+                    class ChirpController deep
+                </pre>
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-4">
+            <div>
+              <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500">Problem</h4>
+              <p class="text-sm text-slate-700 mt-1">Individual handlers are thin wrappers around database queries and environment variables, creating a highly scattered list of route adapters in main.</p>
+            </div>
+
+            <div>
+              <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500">Solution</h4>
+              <p class="text-sm text-slate-700 mt-1">Group handlers into deep domain controllers that present a unified dependency seam to main.</p>
+            </div>
+
+            <div>
+              <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500">Wins</h4>
+              <ul class="list-disc list-inside text-sm text-slate-700 space-y-1 mt-1">
+                <li><strong class="text-indigo-900">interface shrinks:</strong> setup code in main reduces</li>
+                <li><strong class="text-indigo-900">leverage:</strong> shared dependencies initialized once</li>
+                <li><strong class="text-indigo-900">locality:</strong> route grouping mirrors domain model</li>
+                <li><strong class="text-indigo-900">leverage:</strong> testing controllers needs fewer mocks</li>
+              </ul>
+            </div>
+          </div>
+        </article>
+      </section>
+
+    </main>
+  </body>
+</html>
