@@ -26,7 +26,7 @@ func (c *PolkaController) ReceiveWebhook(w http.ResponseWriter, r *http.Request)
 	decoder := json.NewDecoder(r.Body)
 	request := polkaWebhookRequest{}
 	if err := decoder.Decode(&request); err != nil {
-		handleError(err, "Something went wrong", w, http.StatusInternalServerError)
+		handleError(nil, "Invalid request body", w, http.StatusBadRequest)
 		return
 	}
 
