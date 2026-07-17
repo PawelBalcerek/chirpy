@@ -59,6 +59,6 @@ Key decisions documented in `docs/adr/`:
 
 | #   | Bug                                                                            | Status                            |
 | --- | ------------------------------------------------------------------------------ | --------------------------------- |
-| 1   | Profanity filter was dead code — `request.Body` saved instead of `cleanedBody` | **Fixed** in controller refactor  |
-| 2   | `LoginHandler` silently drops `CreateRefreshToken` error                       | **Fixed** in controller refactor  |
-| 3   | `ResetHandler` writes body before status code                                  | Open — follow-up issue            |
+| 1   | Profanity filter was dead code — `request.Body` saved instead of `cleanedBody` | **Fixed** (handlers/chirps.go uses `chirp.NewBody(...).String()`) |
+| 2   | `LoginHandler` silently drops `CreateRefreshToken` error                       | **Fixed** (handlers/users.go returns 500 on `CreateRefreshToken` error) |
+| 3   | `ResetHandler` writes body before status code                                  | **Fixed** (handlers/system.go calls `WriteHeader` before `Write`) |

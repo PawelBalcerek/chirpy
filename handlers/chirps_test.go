@@ -34,8 +34,18 @@ func (f *fakeChirpStore) GetChirp(_ context.Context, id uuid.UUID) (database.Chi
 	return database.Chirp{}, sql.ErrNoRows
 }
 
-func (f *fakeChirpStore) GetChirps(_ context.Context, _ uuid.UUID) ([]database.Chirp, error) {
-	return f.chirps, nil
+func (f *fakeChirpStore) GetChirps(_ context.Context, authorID uuid.UUID) ([]database.Chirp, error) {
+	if authorID == uuid.Nil {
+		return f.chirps, nil
+	}
+
+	filtered := make([]database.Chirp, 0, len(f.chirps))
+	for _, c := range f.chirps {
+		if c.UserID == authorID {
+			filtered = append(filtered, c)
+		}
+	}
+	return filtered, nil
 }
 
 func (f *fakeChirpStore) DeleteChirp(_ context.Context, id uuid.UUID) error {

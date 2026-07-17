@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-17  
 **Status:** Accepted  
-**Deciders:** @PawelBalcerek (via grilling session, conversation `db178851-622d-4c2c-9d83-c3d930ecd3ba`)
+**Deciders:** @PawelBalcerek
 
 ---
 
@@ -26,11 +26,11 @@ testability.
 Introduce three domain-grouped interfaces in `handlers/store.go`, owned by the consumer package (`handlers/`) per Go
 convention:
 
-| Interface    | Methods                                                                   | Handlers                                                                          |
-| ------------ | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| `ChirpStore` | `CreateChirp`, `GetChirp`, `GetChirps`, `DeleteChirp`                     | `CreateChirpHandler`, `GetChirpHandler`, `GetChirpsHandler`, `DeleteChirpHandler` |
-| `UserStore`  | `CreateUser`, `GetUser`, `UpdateUser`, `MakeUserChirpyRed`, `DeleteUsers` | `CreateUserHandler`, `UpdateUserHandler`, `ResetHandler`, `PolkaWebhookHandler`   |
-| `TokenStore` | `CreateRefreshToken`, `GetRefreshToken`, `RevokeRefreshToken`             | `LoginHandler`, `RefreshHandler`, `RevokeHandler`                                 |
+| Interface    | Methods                                                                   | Controllers (methods)                                                                 |
+| ------------ | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `ChirpStore` | `CreateChirp`, `GetChirp`, `GetChirps`, `DeleteChirp`                     | `ChirpController` (`Create`, `Get`, `List`, `Delete`)                                 |
+| `UserStore`  | `CreateUser`, `GetUser`, `UpdateUser`, `MakeUserChirpyRed`, `DeleteUsers` | `UserController` (`Create`, `Update`, `Login`) + `PolkaController.ReceiveWebhook`, `SystemController.Reset` |
+| `TokenStore` | `CreateRefreshToken`, `GetRefreshToken`, `RevokeRefreshToken`             | `UserController` (`Login`, `Refresh`, `Revoke`)                                       |
 
 `LoginHandler` depends on **both** `UserStore` and `TokenStore` as separate named fields — explicit dependency
 declaration, no fat interface.
