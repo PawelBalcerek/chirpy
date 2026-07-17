@@ -6,19 +6,13 @@ import (
 	"errors"
 	"net/http"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/PawelBalcerek/chirpy/internal/auth"
+	"github.com/PawelBalcerek/chirpy/internal/chirp"
 	"github.com/PawelBalcerek/chirpy/internal/database"
 	"github.com/google/uuid"
 )
-
-var profaneWords = map[string]struct{}{
-	"kerfuffle": {},
-	"sharbert":  {},
-	"fornax":    {},
-}
 
 type chirpResponse struct {
 	Id        uuid.UUID `json:"id"`
@@ -66,31 +60,27 @@ func (h CreateChirpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(request.Body) > 140 {
-		handleError(nil, "Chirp is too long", w, http.StatusBadRequest)
+	chirpBody, err := chirp.NewBody(request.Body)
+	if err != nil {
+		if errors.Is(err, chirp.ErrBodyTooLong) || errors.Is(err, chirp.ErrBodyEmpty) {
+			handleError(err, err.Error(), w, http.StatusBadRequest)
+			return
+		}
+		handleError(err, "Something went wrong", w, http.StatusInternalServerError)
 		return
 	}
 
-	cleanedBodyElements := []string{}
-	for e := range strings.SplitSeq(request.Body, " ") {
-		if _, ok := profaneWords[strings.ToLower(e)]; ok {
-			cleanedBodyElements = append(cleanedBodyElements, "****")
-			continue
-		}
-		cleanedBodyElements = append(cleanedBodyElements, e)
-	}
-
 	params := database.CreateChirpParams{
-		Body:   request.Body,
+		Body:   chirpBody.String(),
 		UserID: userId,
 	}
-	chirp, err := h.DbQueries.CreateChirp(r.Context(), params)
+	dbChirp, err := h.DbQueries.CreateChirp(r.Context(), params)
 	if err != nil {
 		handleError(err, "Failed to create chirp", w, http.StatusInternalServerError)
 		return
 	}
 
-	writeJSON(newChirpResponse(chirp), w, http.StatusCreated)
+	writeJSON(newChirpResponse(dbChirp), w, http.StatusCreated)
 }
 
 type GetChirpHandler struct {
