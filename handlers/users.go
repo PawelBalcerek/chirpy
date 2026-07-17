@@ -43,8 +43,9 @@ func newUserResponse(user database.User) userResponse {
 }
 
 type UserController struct {
-	DbQueries *database.Queries
-	JWTSecret string
+	UserStore  UserStore
+	TokenStore TokenStore
+	JWTSecret  string
 }
 
 func (c *UserController) Create(w http.ResponseWriter, r *http.Request) {
@@ -65,7 +66,7 @@ func (c *UserController) Create(w http.ResponseWriter, r *http.Request) {
 		Email:          request.Email,
 		HashedPassword: hashedPassword,
 	}
-	user, err := c.DbQueries.CreateUser(r.Context(), params)
+	user, err := c.UserStore.CreateUser(r.Context(), params)
 	if err != nil {
 		handleError(err, "Failed to create user", w, http.StatusInternalServerError)
 		return
@@ -99,7 +100,7 @@ func (c *UserController) Update(w http.ResponseWriter, r *http.Request) {
 		HashedPassword: hashedPassword,
 		ID:             userId,
 	}
-	user, err := c.DbQueries.UpdateUser(r.Context(), params)
+	user, err := c.UserStore.UpdateUser(r.Context(), params)
 	if err != nil {
 		handleError(err, "Failed to update user", w, http.StatusInternalServerError)
 		return
@@ -121,7 +122,7 @@ func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := c.DbQueries.GetUser(r.Context(), request.Email)
+	user, err := c.UserStore.GetUser(r.Context(), request.Email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			handleError(nil, UnauthorizedUserMsg, w, http.StatusUnauthorized)
@@ -154,7 +155,7 @@ func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {
 		UserID:    user.ID,
 		ExpiresAt: time.Now().Add(refreshTokenExpiresIn),
 	}
-	if _, err := c.DbQueries.CreateRefreshToken(r.Context(), params); err != nil {
+	if _, err := c.TokenStore.CreateRefreshToken(r.Context(), params); err != nil {
 		handleError(err, "Failed to create refresh token", w, http.StatusInternalServerError)
 		return
 	}
@@ -187,7 +188,7 @@ func (c *UserController) Refresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	refreshToken, err := c.DbQueries.GetRefreshToken(r.Context(), token)
+	refreshToken, err := c.TokenStore.GetRefreshToken(r.Context(), token)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			handleError(nil, "Unknown refresh token", w, http.StatusUnauthorized)
@@ -226,7 +227,7 @@ func (c *UserController) Revoke(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := c.DbQueries.RevokeRefreshToken(r.Context(), token); err != nil {
+	if err := c.TokenStore.RevokeRefreshToken(r.Context(), token); err != nil {
 		handleError(err, "Failed to revoke refresh token", w, http.StatusInternalServerError)
 		return
 	}

@@ -66,12 +66,12 @@ func main() {
 	}
 	mux := http.NewServeMux()
 
-	chirpCtrl := &handlers.ChirpController{DbQueries: sCfg.dbQueries}
-	userCtrl := &handlers.UserController{DbQueries: sCfg.dbQueries, JWTSecret: jwtSecret}
-	polkaCtrl := &handlers.PolkaController{DbQueries: sCfg.dbQueries}
+	chirpCtrl := &handlers.ChirpController{ChirpStore: sCfg.dbQueries}
+	userCtrl := &handlers.UserController{UserStore: sCfg.dbQueries, TokenStore: sCfg.dbQueries, JWTSecret: jwtSecret}
+	polkaCtrl := &handlers.PolkaController{UserStore: sCfg.dbQueries}
 	systemCtrl := &handlers.SystemController{
 		Metrics:   sCfg.metrics,
-		DbQueries: sCfg.dbQueries,
+		UserStore: sCfg.dbQueries,
 		Platform:  platform,
 	}
 

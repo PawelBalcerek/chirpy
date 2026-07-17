@@ -32,7 +32,7 @@ func newChirpResponse(chirp database.Chirp) chirpResponse {
 }
 
 type ChirpController struct {
-	DbQueries *database.Queries
+	ChirpStore ChirpStore
 }
 
 func (c *ChirpController) Create(w http.ResponseWriter, r *http.Request) {
@@ -70,7 +70,7 @@ func (c *ChirpController) Create(w http.ResponseWriter, r *http.Request) {
 		Body:   chirpBody.String(),
 		UserID: userId,
 	}
-	dbChirp, err := c.DbQueries.CreateChirp(r.Context(), params)
+	dbChirp, err := c.ChirpStore.CreateChirp(r.Context(), params)
 	if err != nil {
 		handleError(err, "Failed to create chirp", w, http.StatusInternalServerError)
 		return
@@ -86,7 +86,7 @@ func (c *ChirpController) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	chirpVal, err := c.DbQueries.GetChirp(r.Context(), id)
+	chirpVal, err := c.ChirpStore.GetChirp(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			handleError(nil, "Chirp could not be found.", w, http.StatusNotFound)
@@ -111,7 +111,7 @@ func (c *ChirpController) List(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	chirps, err := c.DbQueries.GetChirps(r.Context(), authorId)
+	chirps, err := c.ChirpStore.GetChirps(r.Context(), authorId)
 	if err != nil {
 		handleError(err, "Failed to get chirps", w, http.StatusInternalServerError)
 		return
@@ -142,7 +142,7 @@ func (c *ChirpController) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	chirpVal, err := c.DbQueries.GetChirp(r.Context(), id)
+	chirpVal, err := c.ChirpStore.GetChirp(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			handleError(nil, "Chirp could not be found.", w, http.StatusNotFound)
@@ -157,7 +157,7 @@ func (c *ChirpController) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = c.DbQueries.DeleteChirp(r.Context(), id); err != nil {
+	if err = c.ChirpStore.DeleteChirp(r.Context(), id); err != nil {
 		handleError(err, "Failed to delete chirp", w, http.StatusInternalServerError)
 		return
 	}

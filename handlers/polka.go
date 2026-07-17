@@ -6,12 +6,11 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/PawelBalcerek/chirpy/internal/database"
 	"github.com/google/uuid"
 )
 
 type PolkaController struct {
-	DbQueries *database.Queries
+	UserStore UserStore
 }
 
 func (c *PolkaController) ReceiveWebhook(w http.ResponseWriter, r *http.Request) {
@@ -35,7 +34,7 @@ func (c *PolkaController) ReceiveWebhook(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if _, err := c.DbQueries.MakeUserChirpyRed(r.Context(), request.Data.UserId); err != nil {
+	if _, err := c.UserStore.MakeUserChirpyRed(r.Context(), request.Data.UserId); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			handleError(nil, "User could not be found", w, http.StatusNotFound)
 			return
