@@ -9,12 +9,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// fakeChirpStore implements the ChirpStore subset of *database.Queries methods
-// for use in tests that need an in-memory store. Handler tests that exercise
-// ChirpController directly should inject userID via context (simulating RequireJWT).
-//
-// Profanity filtering and body length validation are covered by internal/chirp/body_test.go.
-// JWT middleware is covered by handlers/middleware_test.go.
 type fakeChirpStore struct {
 	chirps []database.Chirp
 }
