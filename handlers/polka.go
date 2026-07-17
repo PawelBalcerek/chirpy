@@ -6,27 +6,15 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/PawelBalcerek/chirpy/internal/auth"
 	"github.com/PawelBalcerek/chirpy/internal/database"
 	"github.com/google/uuid"
 )
 
-type PolkaWebhookHandler struct {
+type PolkaController struct {
 	DbQueries *database.Queries
-	ApiKey    string
 }
 
-func (h PolkaWebhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	apiKey, err := auth.GetApiKey(r.Header)
-	if err != nil {
-		handleAuthorizationError(err, w)
-		return
-	}
-
-	if apiKey != h.ApiKey {
-		writeJSON("Invalid api key", w, http.StatusUnauthorized)
-		return
-	}
+func (c *PolkaController) ReceiveWebhook(w http.ResponseWriter, r *http.Request) {
 
 	type polkaWebhookRequest struct {
 		Event string `json:"event"`
@@ -38,7 +26,7 @@ func (h PolkaWebhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	request := polkaWebhookRequest{}
 	if err := decoder.Decode(&request); err != nil {
-		handleError(err, "Something went wrong", w, http.StatusInternalServerError)
+		handleError(err, "Invalid request body", w, http.StatusBadRequest)
 		return
 	}
 
@@ -47,9 +35,9 @@ func (h PolkaWebhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err := h.DbQueries.MakeUserChirpyRed(r.Context(), request.Data.UserId); err != nil {
+	if _, err := c.DbQueries.MakeUserChirpyRed(r.Context(), request.Data.UserId); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			writeJSON("User could not be found", w, http.StatusNotFound)
+			handleError(nil, "User could not be found", w, http.StatusNotFound)
 			return
 		}
 		handleError(err, "Failed to make user chirpy red", w, http.StatusInternalServerError)
