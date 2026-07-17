@@ -43,7 +43,12 @@ Interface method signatures mirror sqlc-generated code (same parameter and retur
 
 ### Positive
 
-- Handler unit tests run without a database — in-memory fakes (`fakeChirpStore`, etc.) implemented in `*_test.go` files.
+- Handler unit tests run without a database. Fakes live in `handlers/fakes_test.go` as **function-field structs** (e.g.
+  `fakeChirpStore.CreateChirpFunc func(...)`) — each method delegates to its field when set, returns a zero value
+  otherwise. This lets individual tests wire only the methods they exercise.
+- Context injection for auth-protected handlers is done via `handlers.WithUserIDContext` in `handlers/export_test.go` —
+  a `package handlers` file compiled only during `go test`, giving tests access to the unexported `userIDContextKey`
+  without exposing it to production callers.
 - The seam is precise: each handler only depends on the methods it actually calls.
 - `*database.Queries` satisfies all three interfaces structurally; no adapter needed.
 
