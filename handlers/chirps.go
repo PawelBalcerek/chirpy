@@ -6,19 +6,12 @@ import (
 	"errors"
 	"net/http"
 	"sort"
-	"strings"
 	"time"
 
-	"github.com/PawelBalcerek/chirpy/internal/auth"
+	"github.com/PawelBalcerek/chirpy/internal/chirp"
 	"github.com/PawelBalcerek/chirpy/internal/database"
 	"github.com/google/uuid"
 )
-
-var profaneWords = map[string]struct{}{
-	"kerfuffle": {},
-	"sharbert":  {},
-	"fornax":    {},
-}
 
 type chirpResponse struct {
 	Id        uuid.UUID `json:"id"`
@@ -38,21 +31,14 @@ func newChirpResponse(chirp database.Chirp) chirpResponse {
 	}
 }
 
-type CreateChirpHandler struct {
-	DbQueries ChirpStore
-	JWTSecret string
+type ChirpController struct {
+	DbQueries *database.Queries
 }
 
-func (h CreateChirpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	token, err := auth.GetBearerToken(r.Header)
-	if err != nil {
-		handleAuthorizationError(err, w)
-		return
-	}
-
-	userId, err := auth.ValidateJWT(token, h.JWTSecret)
-	if err != nil {
-		handleError(err, "Invalid token", w, http.StatusUnauthorized)
+func (c *ChirpController) Create(w http.ResponseWriter, r *http.Request) {
+	userId, ok := GetUserID(r.Context())
+	if !ok {
+		handleError(nil, "Invalid token", w, http.StatusUnauthorized)
 		return
 	}
 
@@ -62,67 +48,58 @@ func (h CreateChirpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	request := createChirpRequest{}
 	if err := decoder.Decode(&request); err != nil {
+		handleError(err, "Failed to decode request", w, http.StatusBadRequest)
+		return
+	}
+
+	chirpBody, err := chirp.NewBody(request.Body)
+	if err != nil {
+		if errors.Is(err, chirp.ErrBodyTooLong) {
+			handleError(nil, "Chirp is too long", w, http.StatusBadRequest)
+			return
+		}
+		if errors.Is(err, chirp.ErrBodyEmpty) {
+			handleError(nil, "Chirp body cannot be empty", w, http.StatusBadRequest)
+			return
+		}
 		handleError(err, "Something went wrong", w, http.StatusInternalServerError)
 		return
 	}
 
-	if len(request.Body) > 140 {
-		handleError(nil, "Chirp is too long", w, http.StatusBadRequest)
-		return
-	}
-
-	cleanedBodyElements := []string{}
-	for e := range strings.SplitSeq(request.Body, " ") {
-		if _, ok := profaneWords[strings.ToLower(e)]; ok {
-			cleanedBodyElements = append(cleanedBodyElements, "****")
-			continue
-		}
-		cleanedBodyElements = append(cleanedBodyElements, e)
-	}
-
-	cleanedBody := strings.Join(cleanedBodyElements, " ")
 	params := database.CreateChirpParams{
-		Body:   cleanedBody,
+		Body:   chirpBody.String(),
 		UserID: userId,
 	}
-	chirp, err := h.DbQueries.CreateChirp(r.Context(), params)
+	dbChirp, err := c.DbQueries.CreateChirp(r.Context(), params)
 	if err != nil {
 		handleError(err, "Failed to create chirp", w, http.StatusInternalServerError)
 		return
 	}
 
-	writeJSON(newChirpResponse(chirp), w, http.StatusCreated)
+	writeJSON(newChirpResponse(dbChirp), w, http.StatusCreated)
 }
 
-type GetChirpHandler struct {
-	DbQueries ChirpStore
-}
-
-func (h GetChirpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (c *ChirpController) Get(w http.ResponseWriter, r *http.Request) {
 	id, err := uuid.Parse(r.PathValue("id"))
 	if err != nil {
 		handleError(err, "Invalid chirp id", w, http.StatusBadRequest)
 		return
 	}
 
-	chirp, err := h.DbQueries.GetChirp(r.Context(), id)
+	chirpVal, err := c.DbQueries.GetChirp(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			writeJSON("Chirp could not be found.", w, http.StatusNotFound)
+			handleError(nil, "Chirp could not be found.", w, http.StatusNotFound)
 			return
 		}
 		handleError(err, "Failed to get chirp", w, http.StatusInternalServerError)
 		return
 	}
 
-	writeJSON(newChirpResponse(chirp), w, http.StatusOK)
+	writeJSON(newChirpResponse(chirpVal), w, http.StatusOK)
 }
 
-type GetChirpsHandler struct {
-	DbQueries ChirpStore
-}
-
-func (h GetChirpsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (c *ChirpController) List(w http.ResponseWriter, r *http.Request) {
 	rawAuthorId := r.URL.Query().Get("author_id")
 	authorId := uuid.Nil
 	if rawAuthorId != "" {
@@ -134,15 +111,15 @@ func (h GetChirpsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	chirps, err := h.DbQueries.GetChirps(r.Context(), authorId)
+	chirps, err := c.DbQueries.GetChirps(r.Context(), authorId)
 	if err != nil {
 		handleError(err, "Failed to get chirps", w, http.StatusInternalServerError)
 		return
 	}
 
 	responses := []chirpResponse{}
-	for _, chirp := range chirps {
-		responses = append(responses, newChirpResponse(chirp))
+	for _, chirpVal := range chirps {
+		responses = append(responses, newChirpResponse(chirpVal))
 	}
 
 	sortQuery := r.URL.Query().Get("sort")
@@ -152,21 +129,10 @@ func (h GetChirpsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	writeJSON(responses, w, http.StatusOK)
 }
 
-type DeleteChirpHandler struct {
-	DbQueries ChirpStore
-	JWTSecret string
-}
-
-func (h DeleteChirpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	token, err := auth.GetBearerToken(r.Header)
-	if err != nil {
-		handleAuthorizationError(err, w)
-		return
-	}
-
-	userId, err := auth.ValidateJWT(token, h.JWTSecret)
-	if err != nil {
-		handleError(err, "Invalid token", w, http.StatusUnauthorized)
+func (c *ChirpController) Delete(w http.ResponseWriter, r *http.Request) {
+	userId, ok := GetUserID(r.Context())
+	if !ok {
+		handleError(nil, "Invalid token", w, http.StatusUnauthorized)
 		return
 	}
 
@@ -176,22 +142,22 @@ func (h DeleteChirpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	chirp, err := h.DbQueries.GetChirp(r.Context(), id)
+	chirpVal, err := c.DbQueries.GetChirp(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			writeJSON("Chirp could not be found.", w, http.StatusNotFound)
+			handleError(nil, "Chirp could not be found.", w, http.StatusNotFound)
 			return
 		}
 		handleError(err, "Failed to get chirp", w, http.StatusInternalServerError)
 		return
 	}
 
-	if chirp.UserID != userId {
+	if chirpVal.UserID != userId {
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
 
-	if err = h.DbQueries.DeleteChirp(r.Context(), id); err != nil {
+	if err = c.DbQueries.DeleteChirp(r.Context(), id); err != nil {
 		handleError(err, "Failed to delete chirp", w, http.StatusInternalServerError)
 		return
 	}

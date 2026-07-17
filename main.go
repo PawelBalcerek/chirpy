@@ -65,43 +65,47 @@ func main() {
 		dbQueries:   database.New(db),
 	}
 	mux := http.NewServeMux()
+
+	chirpCtrl := &handlers.ChirpController{DbQueries: sCfg.dbQueries}
+	userCtrl := &handlers.UserController{DbQueries: sCfg.dbQueries, JWTSecret: jwtSecret}
+	polkaCtrl := &handlers.PolkaController{DbQueries: sCfg.dbQueries}
+	systemCtrl := &handlers.SystemController{
+		Metrics:   sCfg.metrics,
+		DbQueries: sCfg.dbQueries,
+		Platform:  platform,
+	}
+
 	mux.Handle(
 		fmt.Sprintf("%s/", sCfg.appPrefix),
 		sCfg.metrics.FileserverHitsInc(http.StripPrefix(sCfg.appPrefix, http.FileServer(http.Dir(sCfg.appRoot)))),
 	)
-	mux.Handle(fmt.Sprintf("GET %s/healthz", sCfg.apiPrefix), handlers.HealthCheckHandler{})
-	mux.Handle(fmt.Sprintf("GET %s/metrics", sCfg.adminPrefix), &handlers.MetricsHandler{Metrics: sCfg.metrics})
-	mux.Handle(
-		fmt.Sprintf("POST %s/reset", sCfg.adminPrefix),
-		&handlers.ResetHandler{Metrics: sCfg.metrics, DbQueries: sCfg.dbQueries, Platform: platform},
-	)
+	mux.HandleFunc(fmt.Sprintf("GET %s/healthz", sCfg.apiPrefix), systemCtrl.HealthCheck)
+	mux.HandleFunc(fmt.Sprintf("GET %s/metrics", sCfg.adminPrefix), systemCtrl.MetricsReport)
+	mux.HandleFunc(fmt.Sprintf("POST %s/reset", sCfg.adminPrefix), systemCtrl.Reset)
+
 	mux.Handle(
 		fmt.Sprintf("POST %s/chirps", sCfg.apiPrefix),
-		&handlers.CreateChirpHandler{DbQueries: sCfg.dbQueries, JWTSecret: jwtSecret},
+		handlers.RequireJWT(jwtSecret)(http.HandlerFunc(chirpCtrl.Create)),
 	)
-	mux.Handle(fmt.Sprintf("GET %s/chirps/{id}", sCfg.apiPrefix), &handlers.GetChirpHandler{DbQueries: sCfg.dbQueries})
-	mux.Handle(fmt.Sprintf("GET %s/chirps", sCfg.apiPrefix), &handlers.GetChirpsHandler{DbQueries: sCfg.dbQueries})
+	mux.HandleFunc(fmt.Sprintf("GET %s/chirps/{id}", sCfg.apiPrefix), chirpCtrl.Get)
+	mux.HandleFunc(fmt.Sprintf("GET %s/chirps", sCfg.apiPrefix), chirpCtrl.List)
 	mux.Handle(
 		fmt.Sprintf("DELETE %s/chirps/{id}", sCfg.apiPrefix),
-		&handlers.DeleteChirpHandler{DbQueries: sCfg.dbQueries, JWTSecret: jwtSecret},
+		handlers.RequireJWT(jwtSecret)(http.HandlerFunc(chirpCtrl.Delete)),
 	)
-	mux.Handle(fmt.Sprintf("POST %s/users", sCfg.apiPrefix), &handlers.CreateUserHandler{DbQueries: sCfg.dbQueries})
+
+	mux.HandleFunc(fmt.Sprintf("POST %s/users", sCfg.apiPrefix), userCtrl.Create)
 	mux.Handle(
 		fmt.Sprintf("PUT %s/users", sCfg.apiPrefix),
-		&handlers.UpdateUserHandler{DbQueries: sCfg.dbQueries, JWTSecret: jwtSecret},
+		handlers.RequireJWT(jwtSecret)(http.HandlerFunc(userCtrl.Update)),
 	)
-	mux.Handle(
-		fmt.Sprintf("POST %s/login", sCfg.apiPrefix),
-		&handlers.LoginHandler{UserStore: sCfg.dbQueries, TokenStore: sCfg.dbQueries, JWTSecret: jwtSecret},
-	)
-	mux.Handle(
-		fmt.Sprintf("POST %s/refresh", sCfg.apiPrefix),
-		&handlers.RefreshHandler{DbQueries: sCfg.dbQueries, JWTSecret: jwtSecret},
-	)
-	mux.Handle(fmt.Sprintf("POST %s/revoke", sCfg.apiPrefix), &handlers.RevokeHandler{DbQueries: sCfg.dbQueries})
+	mux.HandleFunc(fmt.Sprintf("POST %s/login", sCfg.apiPrefix), userCtrl.Login)
+	mux.HandleFunc(fmt.Sprintf("POST %s/refresh", sCfg.apiPrefix), userCtrl.Refresh)
+	mux.HandleFunc(fmt.Sprintf("POST %s/revoke", sCfg.apiPrefix), userCtrl.Revoke)
+
 	mux.Handle(
 		fmt.Sprintf("POST %s/polka/webhooks", sCfg.apiPrefix),
-		&handlers.PolkaWebhookHandler{DbQueries: sCfg.dbQueries, ApiKey: polkaKey},
+		handlers.RequireApiKey(polkaKey)(http.HandlerFunc(polkaCtrl.ReceiveWebhook)),
 	)
 	s := &http.Server{
 		Addr:    fmt.Sprintf(":%d", sCfg.port),

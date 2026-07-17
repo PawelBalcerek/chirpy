@@ -2,12 +2,14 @@
 
 ### Issue tracker
 
-Issues are tracked as GitHub Issues on this repo. See `docs/agents/issue-tracker.md`.
+Issues and PRDs for this repo live as GitHub issues. Use the `gh` CLI for all operations. See
+`docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
-Default label vocabulary. See `docs/agents/triage-labels.md`.
+Triage labels map directly to standard roles: needs-triage, needs-info, ready-for-agent, ready-for-human, wontfix. See
+`docs/agents/triage-labels.md`.
 
 ### Domain docs
 
-Single-context layout — one `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+Domain docs use a single-context layout with a root CONTEXT.md and docs/adr/. See `docs/agents/domain.md`.
