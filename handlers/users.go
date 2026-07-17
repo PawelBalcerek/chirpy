@@ -126,7 +126,7 @@ func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {
 	user, err := c.DbQueries.GetUser(r.Context(), request.Email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			writeJSON(UnauthorizedUserMsg, w, http.StatusUnauthorized)
+			handleError(nil, UnauthorizedUserMsg, w, http.StatusUnauthorized)
 			return
 		}
 		handleError(err, "Failed to get user", w, http.StatusInternalServerError)
@@ -139,7 +139,7 @@ func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !authorized {
-		writeJSON(UnauthorizedUserMsg, w, http.StatusUnauthorized)
+		handleError(nil, UnauthorizedUserMsg, w, http.StatusUnauthorized)
 		return
 	}
 
@@ -193,7 +193,7 @@ func (c *UserController) Refresh(w http.ResponseWriter, r *http.Request) {
 	refreshToken, err := c.DbQueries.GetRefreshToken(r.Context(), token)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			writeJSON("Unknown refresh token", w, http.StatusUnauthorized)
+			handleError(nil, "Unknown refresh token", w, http.StatusUnauthorized)
 			return
 		}
 		handleError(err, "Failed to obtain refresh token", w, http.StatusInternalServerError)
@@ -201,12 +201,12 @@ func (c *UserController) Refresh(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if refreshToken.RevokedAt.Valid {
-		writeJSON("Refresh token has been revoked", w, http.StatusUnauthorized)
+		handleError(nil, "Refresh token has been revoked", w, http.StatusUnauthorized)
 		return
 	}
 
 	if !refreshToken.ExpiresAt.After(time.Now()) {
-		writeJSON("Expired refresh token", w, http.StatusUnauthorized)
+		handleError(nil, "Expired refresh token", w, http.StatusUnauthorized)
 		return
 	}
 
