@@ -7,13 +7,12 @@ import (
 	"time"
 
 	"github.com/PawelBalcerek/chirpy/internal/auth"
-	"github.com/PawelBalcerek/chirpy/internal/database"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
 
 type RefreshHandler struct {
-	DbQueries *database.Queries
+	DbQueries TokenStore
 	JWTSecret string
 }
 

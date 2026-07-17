@@ -4,11 +4,10 @@ import (
 	"net/http"
 
 	"github.com/PawelBalcerek/chirpy/internal/auth"
-	"github.com/PawelBalcerek/chirpy/internal/database"
 )
 
 type RevokeHandler struct {
-	DbQueries *database.Queries
+	DbQueries TokenStore
 }
 
 func (h RevokeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {

@@ -92,7 +92,7 @@ func main() {
 	)
 	mux.Handle(
 		fmt.Sprintf("POST %s/login", sCfg.apiPrefix),
-		&handlers.LoginHandler{DbQueries: sCfg.dbQueries, JWTSecret: jwtSecret},
+		&handlers.LoginHandler{UserStore: sCfg.dbQueries, TokenStore: sCfg.dbQueries, JWTSecret: jwtSecret},
 	)
 	mux.Handle(
 		fmt.Sprintf("POST %s/refresh", sCfg.apiPrefix),

@@ -34,7 +34,7 @@ func newUserResponse(user database.User) userResponse {
 }
 
 type CreateUserHandler struct {
-	DbQueries *database.Queries
+	DbQueries UserStore
 }
 
 func (h CreateUserHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -65,7 +65,7 @@ func (h CreateUserHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 type UpdateUserHandler struct {
-	DbQueries *database.Queries
+	DbQueries UserStore
 	JWTSecret string
 }
 

@@ -7,12 +7,11 @@ import (
 	"net/http"
 
 	"github.com/PawelBalcerek/chirpy/internal/auth"
-	"github.com/PawelBalcerek/chirpy/internal/database"
 	"github.com/google/uuid"
 )
 
 type PolkaWebhookHandler struct {
-	DbQueries *database.Queries
+	DbQueries UserStore
 	ApiKey    string
 }
 

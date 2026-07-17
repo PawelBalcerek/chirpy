@@ -3,13 +3,12 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/PawelBalcerek/chirpy/internal/database"
 	"github.com/PawelBalcerek/chirpy/metrics"
 )
 
 type ResetHandler struct {
 	Metrics   *metrics.Metrics
-	DbQueries *database.Queries
+	DbQueries UserStore
 	Platform  string
 }
 

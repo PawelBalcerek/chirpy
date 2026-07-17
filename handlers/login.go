@@ -20,8 +20,9 @@ const (
 )
 
 type LoginHandler struct {
-	DbQueries *database.Queries
-	JWTSecret string
+	UserStore UserStore
+	TokenStore TokenStore
+	JWTSecret  string
 }
 
 func (h LoginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -37,7 +38,7 @@ func (h LoginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.DbQueries.GetUser(r.Context(), request.Email)
+	user, err := h.UserStore.GetUser(r.Context(), request.Email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			writeJSON(UnauthorizedUserMsg, w, http.StatusUnauthorized)
@@ -70,7 +71,7 @@ func (h LoginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		UserID:    user.ID,
 		ExpiresAt: time.Now().Add(refreshTokenExpiresIn),
 	}
-	h.DbQueries.CreateRefreshToken(r.Context(), params)
+	h.TokenStore.CreateRefreshToken(r.Context(), params)
 
 	type loginResponse struct {
 		Id           uuid.UUID `json:"id"`

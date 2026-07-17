@@ -39,7 +39,7 @@ func newChirpResponse(chirp database.Chirp) chirpResponse {
 }
 
 type CreateChirpHandler struct {
-	DbQueries *database.Queries
+	DbQueries ChirpStore
 	JWTSecret string
 }
 
@@ -80,8 +80,9 @@ func (h CreateChirpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		cleanedBodyElements = append(cleanedBodyElements, e)
 	}
 
+	cleanedBody := strings.Join(cleanedBodyElements, " ")
 	params := database.CreateChirpParams{
-		Body:   request.Body,
+		Body:   cleanedBody,
 		UserID: userId,
 	}
 	chirp, err := h.DbQueries.CreateChirp(r.Context(), params)
@@ -94,7 +95,7 @@ func (h CreateChirpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 type GetChirpHandler struct {
-	DbQueries *database.Queries
+	DbQueries ChirpStore
 }
 
 func (h GetChirpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -118,7 +119,7 @@ func (h GetChirpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 type GetChirpsHandler struct {
-	DbQueries *database.Queries
+	DbQueries ChirpStore
 }
 
 func (h GetChirpsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -152,7 +153,7 @@ func (h GetChirpsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 type DeleteChirpHandler struct {
-	DbQueries *database.Queries
+	DbQueries ChirpStore
 	JWTSecret string
 }
 
